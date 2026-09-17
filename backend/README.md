@@ -34,6 +34,54 @@ http://127.0.0.1:8001
 
 This app is for local development only. Do not expose it publicly.
 
+## Qdrant
+
+Start local Qdrant on port `6663`:
+
+```powershell
+docker compose -f docker-compose.qdrant.yml up -d
+```
+
+Create the MistakeTutor collection and payload indexes:
+
+```powershell
+python scripts/init_qdrant_collection.py
+```
+
+Qdrant dashboard/API:
+
+```text
+http://127.0.0.1:6663
+```
+
+Schema notes:
+
+```text
+docs/qdrant-schema.md
+```
+
+## Docker
+
+Docker files live in:
+
+```text
+docker/
+```
+
+Run backend + Qdrant:
+
+```powershell
+copy .env.example .env
+cd docker
+docker compose up --build -d
+```
+
+More details:
+
+```text
+docker/README.md
+```
+
 Mistake diagnosis scaffold:
 
 ```text
