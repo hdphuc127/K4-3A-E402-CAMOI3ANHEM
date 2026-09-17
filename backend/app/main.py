@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.auth import router as auth_router
+from app.api.v1.curriculum import router as curriculum_router
 from app.api.v1.diagnosis import router as diagnosis_router
 from app.api.v1.health import router as health_router
 from app.core.config import settings
@@ -43,6 +44,11 @@ def create_app() -> FastAPI:
         auth_router,
         prefix=f"{settings.api_prefix}",
         tags=["auth"],
+    )
+    app.include_router(
+        curriculum_router,
+        prefix=f"{settings.api_prefix}",
+        tags=["curriculum"],
     )
     return app
 

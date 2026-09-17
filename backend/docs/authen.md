@@ -315,30 +315,27 @@ Danh sach nay uu tien theo muc tieu CP3-CP4: co AI call that, co log, co metric 
 
 Luu y: CP1 hien tai tap trung vao teach-back "vi sao LLM co the bia" va phat hien knowledge gap sau khi hoc xong chuong. Schema database chi tiet nam o `backend/docs/database-schema.md`.
 
-### Nhom A - Learning flow API
+### Nhom A - Curriculum API
 
 | API | Method | Muc dich | Uu tien |
 |---|---|---|---|
-| `/api/v1/lessons` | GET | List bai hoc/fixture co san, vi du Tokenization | Cao |
-| `/api/v1/questions` | GET | Lay cau hoi theo lesson | Cao |
-| `/api/v1/attempts` | POST | Luu lan hoc vien tra loi cau hoi | Cao |
-| `/api/v1/attempts/{attempt_id}` | GET | Lay lai attempt va ket qua | Trung binh |
+| `/api/v1/modules` | GET | Da co: list chuong/module hoc | Da co |
+| `/api/v1/modules/{module_id}/concepts` | GET | Da co: list khai niem trong module | Da co |
 
-### Nhom B - Mistake diagnosis API
+### Nhom B - Teach-back learning flow API
 
 | API | Method | Muc dich | Uu tien |
 |---|---|---|---|
-| `/api/v1/diagnosis` | POST | Da co scaffold: chan doan loi va tra goi y | Da co |
-| `/api/v1/diagnosis/{id}/feedback` | POST | User danh dau goi y dung/sai, dung cho validation | Cao |
-| `/api/v1/diagnosis/logs` | GET | Xem log cac lan chan doan de quay CP3/CP4 | Trung binh |
+| `/api/v1/review-sessions` | POST | Tao phien review cho hoc vien sau khi chon module | Cao |
+| `/api/v1/teachback-attempts` | POST | Luu lan hoc vien tu giai thich lai mot khai niem | Cao |
+| `/api/v1/teachback-attempts/{attempt_id}/diagnose` | POST | AI doi chieu transcript/rubric va chan doan lo hong kien thuc | Cao |
 
-### Nhom C - AI/RAG API
+### Nhom C - Evidence & validation API
 
 | API | Method | Muc dich | Uu tien |
 |---|---|---|---|
-| `/api/v1/sources/search` | POST | Search transcript/slide lien quan | Cao |
-| `/api/v1/sources/{source_id}` | GET | Lay trich dan nguon ngan de hien tren UI | Trung binh |
-| `/api/v1/admin/index-sources` | POST | Tao index RAG local tu fixture cho demo | Trung binh |
+| `/api/v1/research-responses` | POST | Luu log khao sat/phong van CP1/R1 | Trung binh |
+| `/api/v1/willing-users` | POST | Luu willing users khai tu CP1 va dung cho validation | Trung binh |
 
 ### Nhom D - Metrics/Evaluation API
 
@@ -361,17 +358,22 @@ Luu y: CP1 hien tai tap trung vao teach-back "vi sao LLM co the bia" va phat hie
 
 Nen lam theo thu tu:
 
-1. `POST /api/v1/attempts`: luu cau tra loi cua hoc vien.
-2. Nang cap `POST /api/v1/diagnosis`: goi LLM that thay vi rule-based stub.
-3. `POST /api/v1/diagnosis/{id}/feedback`: luu user feedback cho validation.
-4. `POST /api/v1/eval/run`: chay golden set 20 cases lay so do CP3.
+1. `POST /api/v1/review-sessions`: tao phien review sau khi user chon module.
+2. `POST /api/v1/teachback-attempts`: luu cau giai thich teach-back cua hoc vien.
+3. `POST /api/v1/teachback-attempts/{attempt_id}/diagnose`: goi AI/RAG de chan doan knowledge gap.
+4. `POST /api/v1/research-responses`: luu evidence khao sat/phong van.
+5. `POST /api/v1/willing-users`: luu willing users cho validation.
+6. `POST /api/v1/eval/run`: chay golden set 20 cases lay so do CP3.
 
 Bo API toi thieu de demo CP3:
 
 ```text
 POST /api/v1/auth/login
 GET  /api/v1/auth/me
-POST /api/v1/attempts
-POST /api/v1/diagnosis
+GET  /api/v1/modules
+GET  /api/v1/modules/{module_id}/concepts
+POST /api/v1/review-sessions
+POST /api/v1/teachback-attempts
+POST /api/v1/teachback-attempts/{attempt_id}/diagnose
 POST /api/v1/eval/run
 ```

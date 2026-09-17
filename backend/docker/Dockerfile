@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY scripts ./scripts
 COPY docs ./docs
+COPY tests ./tests
 COPY pyproject.toml ./pyproject.toml
 
 EXPOSE 8000

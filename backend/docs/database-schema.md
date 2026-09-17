@@ -1,146 +1,200 @@
 # Database Schema - MistakeTutor Track D
 
-Schema nay bam theo CP1: phat hien lo hong kien thuc sau khi hoc bang flow teach-back.
+SQLite stores relational product state: users, learning modules, review sessions, teach-back attempts, diagnoses, research evidence, and willing users.
 
-## Core user/auth
+DB file:
+
+```text
+backend/storage/mistaketutor.db
+```
+
+The file is gitignored.
+
+## Startup Behavior
+
+`app/db/session.py` creates all tables automatically on FastAPI startup:
+
+```text
+uvicorn app.main:app --reload --port 8000
+```
+
+It also seeds the default CP1 content:
+
+```text
+Module:  llm-review
+Concept: why-llm-hallucinates
+Topic:   Vi sao LLM co the bia
+```
+
+## 1. Auth
 
 ### `users`
 
-Luu tai khoan hoc vien dung prototype.
+Stores learner accounts.
 
 | Column | Purpose |
 |---|---|
 | `id` | User id |
-| `email` | Login email |
-| `full_name` | Ten hien thi |
-| `password_hash` | PBKDF2 password hash |
-| `created_at` | Thoi diem tao |
+| `email` | Unique login email |
+| `full_name` | Display name |
+| `password_hash` | PBKDF2 hash, never raw password |
+| `created_at` | Created timestamp |
 
-## Learning content
+Related APIs:
+
+```text
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+GET  /api/v1/auth/me
+```
+
+## 2. Learning Content
 
 ### `learning_modules`
 
-Dai dien cho mot chuong/tuan hoc can review.
+Represents a chapter/week to review.
 
-Seed hien co:
+Seed:
 
-```text
-slug = llm-review
-title = Review chuong LLM
-```
+| Field | Value |
+|---|---|
+| `slug` | `llm-review` |
+| `title` | `Review chuong LLM` |
+| `track` | `D` |
 
 ### `concepts`
 
-Khái niệm can hoc vien teach-back.
+Represents a concept learners must explain back.
 
-Seed hien co:
+Seed:
 
-```text
-slug = why-llm-hallucinates
-title = Vi sao LLM co the bia
-```
+| Field | Value |
+|---|---|
+| `slug` | `why-llm-hallucinates` |
+| `title` | `Vi sao LLM co the bia` |
+| `common_gap` | Learner says only "AI is not smart enough" and misses token prediction/source grounding |
 
-Cot quan trong:
+Important columns:
 
 | Column | Purpose |
 |---|---|
-| `expected_summary` | Dap an/rubric tom tat de doi chieu |
-| `common_gap` | Lo hong pho bien du kien |
+| `module_id` | Parent module |
+| `expected_summary` | Expected answer/rubric summary |
+| `common_gap` | Common misconception |
+
+Related APIs:
+
+```text
+GET /api/v1/modules
+GET /api/v1/modules/{module_id}/concepts
+```
 
 ### `source_chunks`
 
-Doan nguon ngan tu transcript/slide de AI trich dan khi phan hoi.
+Short excerpts from transcript/slide/rubric used as evidence and citations.
 
 | Column | Purpose |
 |---|---|
-| `source_id` | Ma nguon co the hien tren UI/log |
-| `source_type` | `transcript`, `slide`, etc. |
-| `excerpt` | Doan trich ngan |
-| `citation_label` | Label hien thi |
+| `concept_id` | Related concept |
+| `source_id` | Stable source id |
+| `source_type` | `transcript`, `slide`, `rubric`, `synthetic_fixture` |
+| `title` | Source title |
+| `excerpt` | Short citation excerpt |
+| `citation_label` | UI-friendly label |
 
 ### `rubric_criteria`
 
-Tieu chi cham cau giai thich cua hoc vien.
+Scoring criteria for a learner's explanation.
 
-Seed hien co cho hallucination:
+Seeded criteria for `why-llm-hallucinates`:
 
-1. Co che du doan token
-2. Gioi han nguon can cu
-3. Phan biet nghe hop ly va dung su that
+1. `Co che du doan token`
+2. `Gioi han nguon can cu`
+3. `Phan biet nghe hop ly va dung su that`
 
-## Learning flow
+## 3. Learning Flow
 
 ### `review_sessions`
 
-Mot phien hoc vien review chuong/tuan hoc.
+One learner's review session for a module.
 
 | Column | Purpose |
 |---|---|
-| `user_id` | Hoc vien |
-| `module_id` | Chuong/tuan dang review |
+| `user_id` | Learner |
+| `module_id` | Module being reviewed |
 | `status` | `in_progress`, `completed` |
-| `started_at` / `completed_at` | Timeline |
+| `started_at` | Start timestamp |
+| `completed_at` | End timestamp |
 
 ### `teachback_attempts`
 
-Moi lan hoc vien tu giai thich lai mot khai niem.
+One learner answer to one teach-back prompt.
 
 | Column | Purpose |
 |---|---|
-| `session_id` | Thuoc review session nao |
-| `concept_id` | Khai niem dang teach-back |
-| `prompt` | Cau hoi giao cho hoc vien |
-| `student_explanation` | Cau tra loi/giai thich cua hoc vien |
-| `attempt_no` | Lan thu may |
+| `session_id` | Parent review session |
+| `concept_id` | Concept being explained |
+| `prompt` | Prompt shown to learner |
+| `student_explanation` | Learner answer |
+| `attempt_no` | Attempt number |
 
 ### `gap_diagnoses`
 
-Ket qua AI doi chieu cau giai thich voi transcript/rubric.
+AI diagnosis for a teach-back attempt.
 
 | Column | Purpose |
 |---|---|
-| `attempt_id` | Attempt duoc chan doan |
-| `gap_type` | Loai lo hong, vi du `missing_token_prediction_mechanism` |
+| `attempt_id` | Diagnosed attempt |
+| `gap_type` | Gap code, e.g. `missing_token_prediction_mechanism` |
 | `severity` | `low`, `medium`, `high` |
-| `feedback` | Nhan xet ngan |
-| `followup_question` | Cau hoi nguoc de hoc vien sua cach hieu |
-| `confidence` | Muc tu tin |
-| `source_chunk_id` | Nguon duoc trich dan |
+| `feedback` | Short feedback |
+| `followup_question` | Socratic question to repair understanding |
+| `confidence` | AI confidence score |
+| `source_chunk_id` | Citation source |
 
-## Evidence and validation
+## 4. Evidence and Validation
 
 ### `user_research_responses`
 
-Luu log khao sat CP1/R1.
+Stores CP1/R1 survey and interview evidence.
 
 | Column | Purpose |
 |---|---|
-| `respondent_label` | Ten/ma nguoi tra loi, co the an danh |
-| `question` | Cau hoi da hoi |
-| `answer` | Cau tra loi nguyen van |
-| `normalized_answer` | Nhom cau tra loi de dem |
-| `evidence_note` | Ghi chu phan tich |
+| `respondent_label` | Name or anonymized label |
+| `question` | Asked question |
+| `answer` | Raw answer |
+| `normalized_answer` | Bucket for counting |
+| `evidence_note` | Analysis note |
 
 ### `willing_users`
 
-Luu danh sach willing users khai tu CP1 va dung cho validation.
+Stores users who agreed to test the prototype.
 
 | Column | Purpose |
 |---|---|
-| `full_name` | Ten user that |
-| `class_room` | Lop/phong |
-| `commitment_note` | Cam ket thu |
-| `planned_test_time` | Thoi gian du kien |
+| `full_name` | Real tester name |
+| `class_room` | Class/room |
+| `commitment_note` | What they agreed to test |
+| `planned_test_time` | Planned validation time |
 | `status` | `planned`, `tested`, `cancelled` |
 
-## Tables cần API tiếp theo
+## Next APIs to Build
 
-Nen lam API theo thu tu:
+Recommended order:
 
-1. `GET /api/v1/modules`
-2. `GET /api/v1/modules/{module_id}/concepts`
-3. `POST /api/v1/review-sessions`
-4. `POST /api/v1/teachback-attempts`
-5. `POST /api/v1/teachback-attempts/{attempt_id}/diagnose`
-6. `POST /api/v1/research-responses`
-7. `POST /api/v1/willing-users`
+1. `POST /api/v1/review-sessions`
+2. `POST /api/v1/teachback-attempts`
+3. `POST /api/v1/teachback-attempts/{attempt_id}/diagnose`
+4. `POST /api/v1/research-responses`
+5. `POST /api/v1/willing-users`
+6. `POST /api/v1/eval/run`
+
+Minimum CP3 demo path:
+
+```text
+auth/login
+create review session
+create teach-back attempt
+diagnose gap
+show citation + follow-up question
+```
