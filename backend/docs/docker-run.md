@@ -190,6 +190,12 @@ Run only curriculum tests inside Docker:
 docker compose exec backend pytest tests/test_curriculum.py
 ```
 
+Run the full backend workflow test:
+
+```powershell
+docker compose exec backend pytest tests/test_workflow.py
+```
+
 ## 8. Stop
 
 Stop containers:
