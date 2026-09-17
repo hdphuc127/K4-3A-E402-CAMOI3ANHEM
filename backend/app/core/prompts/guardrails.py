@@ -19,7 +19,7 @@ import unicodedata
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
-from src.core.prompts.schemas import (
+from app.core.prompts.schemas import (
     ChatAnswer,
     Citation,
     FaithfulnessReport,
@@ -30,11 +30,11 @@ from src.core.prompts.schemas import (
     RubricCriterion,
     TeachBackDiagnosis,
 )
-from src.core.prompts.templates.quiz_gen import (
+from app.core.prompts.templates.quiz_gen import (
     BANNED_OPTION_PATTERNS,
     QUIZ_OPTIONS_PER_ITEM,
 )
-from src.core.prompts.templates.teach_back import FORBIDDEN_PHRASE_PATTERNS
+from app.core.prompts.templates.teach_back import FORBIDDEN_PHRASE_PATTERNS
 
 __all__ = [
     "GuardrailReport",

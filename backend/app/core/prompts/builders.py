@@ -17,8 +17,8 @@ import secrets
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from src.core.prompts.sanitizer import Severity, sanitize_untrusted
-from src.core.prompts.schemas import (
+from app.core.prompts.sanitizer import Severity, sanitize_untrusted
+from app.core.prompts.schemas import (
     ChatAnswer,
     FaithfulnessReport,
     PromptBundle,
@@ -29,8 +29,8 @@ from src.core.prompts.schemas import (
     coerce_chunks,
     coerce_rubric,
 )
-from src.core.prompts.templates import chat_rag, faithfulness, quiz_gen, shared
-from src.core.prompts.templates import teach_back as teach_back_tpl
+from app.core.prompts.templates import chat_rag, faithfulness, quiz_gen, shared
+from app.core.prompts.templates import teach_back as teach_back_tpl
 
 __all__ = [
     "MAX_QUESTION_CHARS",
@@ -352,7 +352,7 @@ def build_repair_prompt(
     bundle gốc, để mọi guardrail chạy lại trên kết quả sửa vẫn đối chiếu đúng
     tập tài liệu ban đầu.
     """
-    from src.core.prompts.schema_compat import to_gemini_schema
+    from app.core.prompts.schema_compat import to_gemini_schema
 
     schema_text = str(to_gemini_schema(original.response_model))
     user = shared.REPAIR_USER_TEMPLATE.format(

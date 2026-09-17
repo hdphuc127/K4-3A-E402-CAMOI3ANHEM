@@ -14,6 +14,13 @@ class Settings(BaseSettings):
     auth_secret_key: str = "change-me-in-local-env"
     auth_token_expire_minutes: int = 1440
 
+    gemini_api_key: str = ""
+    openai_api_key: str = ""
+    llm_primary_provider: str = "gemini"
+    llm_fallback_provider: str = "openai"
+    llm_deadline_s: float = 10.0
+    enable_llm_judge: bool = False
+
     @property
     def cors_origins(self) -> list[str]:
         return [
