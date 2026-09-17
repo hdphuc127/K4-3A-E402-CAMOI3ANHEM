@@ -313,6 +313,8 @@ Invoke-RestMethod `
 
 Danh sach nay uu tien theo muc tieu CP3-CP4: co AI call that, co log, co metric va demo duoc flow hoc tu loi.
 
+Luu y: CP1 hien tai tap trung vao teach-back "vi sao LLM co the bia" va phat hien knowledge gap sau khi hoc xong chuong. Schema database chi tiet nam o `backend/docs/database-schema.md`.
+
 ### Nhom A - Learning flow API
 
 | API | Method | Muc dich | Uu tien |
