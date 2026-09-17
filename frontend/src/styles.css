@@ -19,6 +19,10 @@
  */
 
 @theme inline {
+  --font-sans: "Segoe UI", Arial, sans-serif;
+  --font-serif: var(--font-sans);
+  --font-mono: ui-monospace, Consolas, monospace;
+  --color-surface: var(--surface);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -66,30 +70,31 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.985 0.005 250);
-  --foreground: oklch(0.23 0.03 258);
+  --radius: 1rem;
+  --background: oklch(0.985 0.006 270);
+  --surface: oklch(0.97 0.014 270);
+  --foreground: oklch(0.24 0.028 257);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.23 0.03 258);
+  --card-foreground: oklch(0.24 0.028 257);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.23 0.03 258);
-  --primary: oklch(0.52 0.13 255);
-  --primary-foreground: oklch(0.99 0.003 247);
-  --secondary: oklch(0.955 0.01 250);
-  --secondary-foreground: oklch(0.33 0.04 258);
-  --muted: oklch(0.96 0.008 250);
-  --muted-foreground: oklch(0.55 0.03 257);
-  --accent: oklch(0.93 0.05 190);
-  --accent-foreground: oklch(0.3 0.06 210);
-  --success: oklch(0.62 0.12 160);
+  --popover-foreground: oklch(0.24 0.028 257);
+  --primary: oklch(0.55 0.19 270);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.95 0.025 275);
+  --secondary-foreground: oklch(0.32 0.04 250);
+  --muted: oklch(0.955 0.008 240);
+  --muted-foreground: oklch(0.52 0.025 255);
+  --accent: oklch(0.95 0.035 295);
+  --accent-foreground: oklch(0.32 0.05 245);
+  --success: oklch(0.52 0.09 160);
   --success-foreground: oklch(0.99 0.003 247);
-  --warning: oklch(0.75 0.13 75);
-  --warning-foreground: oklch(0.28 0.05 70);
-  --destructive: oklch(0.577 0.245 27.325);
+  --warning: oklch(0.58 0.11 62);
+  --warning-foreground: oklch(0.42 0.08 62);
+  --destructive: oklch(0.55 0.17 27);
   --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --border: oklch(0.925 0.018 275);
+  --input: oklch(0.925 0.018 275);
+  --ring: oklch(0.55 0.19 270);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -106,6 +111,10 @@
 }
 
 .dark {
+  --surface: oklch(0.18 0.03 257);
+  --success: oklch(0.72 0.09 160);
+  --warning: oklch(0.78 0.11 75);
+  --warning-foreground: oklch(0.87 0.06 75);
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 265.755);
@@ -148,5 +157,147 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Presentation shared by the existing review, chat, citation and quiz screens. */
+.review-app :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-sans);
+  letter-spacing: normal;
+}
+
+.review-app :is(button, input) {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.review-app button:not(:disabled) {
+  cursor: pointer;
+}
+
+.review-app :is(button, input):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.review-app button:disabled {
+  cursor: not-allowed;
+}
+
+.review-app button[class~="bg-primary"] {
+  background-image: linear-gradient(115deg, var(--primary), oklch(0.57 0.19 295));
+  box-shadow: 0 4px 14px oklch(0.55 0.19 270 / 16%);
+}
+
+.review-app button[class~="border-border"]:not(:disabled):hover {
+  background-color: var(--surface);
+}
+
+.review-app input[type="radio"] {
+  accent-color: var(--primary);
+}
+
+.review-workspace #review-tutor-panel > aside {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Keep the floating tutor clear of the last navigation controls. */
+.review-app > main:not(.review-workspace) {
+  padding-bottom: 7rem;
+}
+
+.coach-app,
+.coach-landing {
+  background:
+    radial-gradient(ellipse at 95% 0%, oklch(0.94 0.04 295 / 65%), transparent 45%),
+    radial-gradient(ellipse at 0% 20%, oklch(0.95 0.035 250 / 60%), transparent 45%),
+    var(--background);
+}
+
+.coach-gradient-text {
+  background: linear-gradient(110deg, var(--primary), oklch(0.57 0.19 295));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.coach-hero-art {
+  background: radial-gradient(circle, oklch(0.92 0.065 285), oklch(0.96 0.025 255 / 25%) 70%);
+}
+
+.coach-mascot {
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.coach-mascot img {
+  mix-blend-mode: multiply;
+}
+
+.coach-app [class~="bg-card"][class~="border"] {
+  box-shadow: 0 5px 24px oklch(0.4 0.05 270 / 4%);
+}
+
+/* App-only compact surfaces; the landing design remains unchanged. */
+.coach-app {
+  --primary: oklch(0.44 0.13 255);
+  --ring: oklch(0.55 0.13 255);
+  padding: 24px 12px 96px;
+  background: oklch(0.98 0.008 260);
+}
+
+.coach-shell {
+  max-width: 620px;
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: 0 8px 32px oklch(0.4 0.05 270 / 5%);
+}
+
+.coach-shell-split {
+  max-width: 1040px;
+}
+
+.coach-app button[class~="bg-primary"] {
+  background-image: linear-gradient(115deg, var(--primary), oklch(0.48 0.12 260));
+}
+
+.coach-app > .coach-shell > main:not(.review-workspace) {
+  padding-bottom: 24px;
+}
+
+.coach-content > .coach-quiz {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+}
+
+.coach-app #review-tutor-panel > aside > div {
+  padding: 12px 16px;
+}
+
+@media (max-width: 640px) {
+  .coach-app {
+    padding: 12px 8px 80px;
+  }
+}
+
+.coach-week-card:not(:disabled):hover {
+  border-color: var(--primary);
+  box-shadow: 0 8px 24px oklch(0.55 0.19 270 / 10%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .review-app :is(button, input) {
+    transition: none;
   }
 }

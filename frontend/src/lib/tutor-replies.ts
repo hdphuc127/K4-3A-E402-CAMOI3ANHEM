@@ -6,13 +6,8 @@ export type ChatContext = {
 };
 
 export const QUICK_ACTIONS = [
-  "Tại sao tôi sai câu này?",
   "Giải thích dễ hiểu hơn",
   "Cho tôi ví dụ khác",
-  "So sánh 2 khái niệm",
-  "Tóm tắt phần này",
-  "Tôi nên ôn phần nào trước?",
-  "Tôi vẫn chưa hiểu",
 ] as const;
 
 const EMBEDDING: Record<string, string> = {
