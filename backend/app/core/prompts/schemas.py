@@ -319,12 +319,12 @@ class PromptBundle:
 
     def as_openai_response_format(self) -> dict[str, Any]:
         # Import trong than ham de tranh vong lap schemas <-> schema_compat.
-        from src.core.prompts.schema_compat import to_openai_response_format
+        from app.core.prompts.schema_compat import to_openai_response_format
 
         return to_openai_response_format(self.response_model)
 
     def as_gemini_args(self) -> dict[str, Any]:
-        from src.core.prompts.schema_compat import to_gemini_schema
+        from app.core.prompts.schema_compat import to_gemini_schema
 
         return {
             "system_instruction": self.system,

@@ -29,9 +29,9 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
-from src.core.prompts import guardrails
-from src.core.prompts.builders import build_faithfulness_prompt, build_repair_prompt
-from src.core.prompts.schemas import (
+from app.core.prompts import guardrails
+from app.core.prompts.builders import build_faithfulness_prompt, build_repair_prompt
+from app.core.prompts.schemas import (
     ChatAnswer,
     Citation,
     FaithfulnessReport,
@@ -45,7 +45,7 @@ from src.core.prompts.schemas import (
     coerce_chunks,
     coerce_rubric,
 )
-from src.core.prompts.templates.messages import (
+from app.core.prompts.templates.messages import (
     ERROR_MESSAGES_VI,
     EXTRACTIVE_FALLBACK_EXCERPT_CHARS,
     EXTRACTIVE_FALLBACK_TEMPLATE,
