@@ -4,5 +4,10 @@ pydantic-settings>=2.4.0,<3.0.0
 email-validator>=2.1.0,<3.0.0
 pytest>=8.0.0,<9.0.0
 httpx>=0.27.0,<1.0.0
+feat/core-apis
 pypdf>=5.0.0,<6.0.0
 openai>=1.100.0,<2.0.0
+=======
+google-generativeai>=0.8.0,<1.0.0
+openai>=1.40.0,<2.0.0
+main

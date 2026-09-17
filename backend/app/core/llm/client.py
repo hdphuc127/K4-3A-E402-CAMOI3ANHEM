@@ -131,7 +131,11 @@ def _build_providers() -> dict[str, LlmProvider]:
         providers["gemini"] = GeminiProvider(settings.gemini_api_key)
     if settings.openai_api_key:
         providers["openai"] = OpenAiCompatibleProvider(
+feat/core-apis
             settings.openai_api_key, model=settings.default_llm_model or _OPENAI_MODEL
+=======
+            settings.openai_api_key, model=_OPENAI_MODEL
+main
         )
     if settings.openrouter_api_key:
         providers["openrouter"] = OpenAiCompatibleProvider(

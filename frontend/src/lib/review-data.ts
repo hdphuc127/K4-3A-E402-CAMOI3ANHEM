@@ -1,14 +1,14 @@
+import type { QuizQuestion } from "./quiz";
+
 export type TopicId = "tokenization" | "embedding" | "attention" | "tool-calling";
 
-export type Question = {
-  id: string;
+export type Question = QuizQuestion & {
   topic: TopicId;
-  prompt: string;
-  options: string[];
-  correct: number;
-  why: string;
   misconception: string;
 };
+
+// Five existing demo questions covering all four topics; no adaptive selection.
+export const DEMO_QUIZ_QUESTION_IDS: readonly string[] = ["q1", "q2", "q3", "q4", "q6"];
 
 export type Topic = {
   id: TopicId;
