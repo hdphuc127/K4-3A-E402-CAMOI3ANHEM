@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.auth import router as auth_router
+from app.api.v1.chat import router as chat_router
 from app.api.v1.curriculum import router as curriculum_router
 from app.api.v1.diagnosis import router as diagnosis_router
 from app.api.v1.health import router as health_router
@@ -39,6 +40,11 @@ def create_app() -> FastAPI:
         diagnosis_router,
         prefix=f"{settings.api_prefix}",
         tags=["diagnosis"],
+    )
+    app.include_router(
+        chat_router,
+        prefix=f"{settings.api_prefix}",
+        tags=["chat"],
     )
     app.include_router(
         auth_router,

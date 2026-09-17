@@ -1,5 +1,8 @@
-import { tutorReply, type ChatContext } from "./tutor-replies";
-import { DEMO_EMBEDDING_SLIDE } from "./demo/chat-demo";
+import type { ChatContext } from "./tutor-replies";
+
+const API_BASE_URL = (import.meta.env["VITE_API_BASE_URL"] ?? "http://127.0.0.1:8000/api/v1")
+  .replace(/^VITE_API_BASE_URL=/, "")
+  .replace(/\/$/, "");
 
 // Frontend model; map the backend contract to these fields when it is available.
 export type ChatSource = {
@@ -41,11 +44,93 @@ export type ChatReply = {
   sources?: ChatSource[];
 };
 
-// Keep the existing mock until the chat API contract is available.
-// Replace only this adapter with the backend request and response mapping.
+export async function requestTutorReplyStream(
+  request: ChatRequest,
+  onText: (text: string) => void,
+): Promise<ChatReply> {
+  const response = await fetch(`${API_BASE_URL}/chat/stream`, {
+    method: "POST",
+    headers: {
+      Accept: "application/x-ndjson",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      text: request.text,
+      context: request.context,
+      messages: request.messages.map(({ role, text }) => ({ role, text })),
+    }),
+  });
+
+  if (!response.ok || !response.body) {
+    throw new Error(`Chat stream request failed: ${response.status} ${response.statusText}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let fullText = "";
+  let citations: ChatSource[] = [];
+  let degraded = false;
+
+  const consume = (line: string) => {
+    if (!line.trim()) return;
+    const event = JSON.parse(line) as {
+      type: "delta" | "done";
+      text?: string;
+      citations?: ChatSource[];
+      degraded?: boolean;
+    };
+    if (event.type === "delta" && event.text) {
+      fullText += event.text;
+      onText(event.text);
+    } else if (event.type === "done") {
+      citations = event.citations ?? [];
+      degraded = event.degraded ?? false;
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    lines.forEach(consume);
+    if (done) break;
+  }
+  if (buffer.trim()) consume(buffer);
+
+  return { text: fullText, citations, sources: citations };
+}
+
 export async function requestTutorReply(request: ChatRequest): Promise<ChatReply> {
+  const response = await fetch(`${API_BASE_URL}/chat`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      text: request.text,
+      context: request.context,
+      messages: request.messages.map(({ role, text }) => ({ role, text })),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Chat API request failed: ${response.status} ${response.statusText}`);
+  }
+
+  const payload = (await response.json()) as {
+    success: boolean;
+    data?: { text: string; citations?: ChatSource[] };
+    error?: { message?: string } | null;
+  };
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.error?.message ?? "Chat API returned an unsuccessful response");
+  }
+
   return {
-    text: tutorReply(request.text, request.context),
-    ...(request.context.topic === "embedding" ? { citations: [DEMO_EMBEDDING_SLIDE] } : {}),
+    text: payload.data.text,
+    citations: payload.data.citations ?? [],
   };
 }
