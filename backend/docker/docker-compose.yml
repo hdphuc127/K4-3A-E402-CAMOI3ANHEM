@@ -1,0 +1,42 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: mistaketutor-backend
+    env_file:
+      - ../.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../storage:/app/storage
+    depends_on:
+      - qdrant
+    restart: unless-stopped
+
+  db-ui:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: mistaketutor-db-ui
+    env_file:
+      - ../.env
+    command: ["uvicorn", "app.db_ui:app", "--host", "0.0.0.0", "--port", "8001"]
+    ports:
+      - "8001:8001"
+    volumes:
+      - ../storage:/app/storage
+    profiles:
+      - tools
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.3
+    container_name: mistaketutor-qdrant
+    ports:
+      - "6663:6333"
+    volumes:
+      - ../storage/qdrant:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: 6333
+    restart: unless-stopped

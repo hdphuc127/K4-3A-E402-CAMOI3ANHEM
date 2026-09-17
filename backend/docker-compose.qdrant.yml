@@ -1,0 +1,11 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.11.3
+    container_name: mistaketutor-qdrant
+    ports:
+      - "6663:6333"
+    volumes:
+      - ./storage/qdrant:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: 6333
+    restart: unless-stopped
