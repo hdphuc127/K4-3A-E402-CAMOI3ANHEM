@@ -9,8 +9,9 @@ from app.db.curriculum import (
     list_concepts_by_module,
     list_learning_modules,
 )
+from app.db.review_data import get_review_data as load_review_data
 from app.schemas.common import ApiResponse, ResponseMeta
-from app.schemas.curriculum import Concept, ConceptList, LearningModule
+from app.schemas.curriculum import Concept, ConceptList, LearningModule, ReviewData
 
 router = APIRouter()
 
@@ -51,6 +52,16 @@ def get_module_concepts(module_id: int) -> ApiResponse[ConceptList]:
             module=_module_to_schema(module),
             concepts=concepts,
         ),
+        error=None,
+        meta=ResponseMeta(timestamp=datetime.now(timezone.utc)),
+    )
+
+
+@router.get("/review-data", response_model=ApiResponse[ReviewData])
+def get_review_data() -> ApiResponse[ReviewData]:
+    return ApiResponse(
+        success=True,
+        data=load_review_data(),
         error=None,
         meta=ResponseMeta(timestamp=datetime.now(timezone.utc)),
     )

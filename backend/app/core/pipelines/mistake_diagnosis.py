@@ -30,7 +30,10 @@ def diagnose_mistake(request: DiagnosisRequest) -> DiagnosisResult:
     the canned hint whenever the LLM is unavailable or its answer can't be
     grounded in the retrieved context.
     """
-    context = retrieve_tokenization_context(request.lesson_id)
+    context = retrieve_tokenization_context(
+        request.lesson_id,
+        query=f"{request.question_text}\n{request.student_answer}",
+    )
     normalized_answer = request.student_answer.strip().lower()
 
     if normalized_answer in {"3", "three", "ba"}:
