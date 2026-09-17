@@ -1,0 +1,33 @@
+# Local env and secrets
+.env
+.env.*
+!.env.example
+
+# Python runtime
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local generated stores
+storage/
+*.db
+*.sqlite
+*.sqlite3
+.chroma/
+chroma/
+qdrant_storage/
+uploads/
+
+# Data packs must never be committed
+data/
+vlearn-pack/
+discord-pack/
