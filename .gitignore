@@ -216,3 +216,45 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Hackathon data packs - never commit course data
+data/
+**/data/
+vlearn-pack/
+**/vlearn-pack/
+discord-pack/
+**/discord-pack/
+
+# Environment files - keep examples only
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Frontend dependencies and build output
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+out/
+**/out/
+coverage/
+**/coverage/
+
+# Local AI/vector stores and generated artifacts
+.chroma/
+**/.chroma/
+chroma/
+**/chroma/
+qdrant_storage/
+**/qdrant_storage/
+storage/
+**/storage/
+uploads/
+**/uploads/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
