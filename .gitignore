@@ -252,6 +252,9 @@ qdrant_storage/
 **/qdrant_storage/
 storage/
 **/storage/
+*.db
+*.sqlite
+*.sqlite3
 uploads/
 **/uploads/
 

@@ -19,6 +19,9 @@ env/
 
 # Local generated stores
 storage/
+*.db
+*.sqlite
+*.sqlite3
 .chroma/
 chroma/
 qdrant_storage/

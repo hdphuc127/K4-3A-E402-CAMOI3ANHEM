@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     backend_cors_origins: str = (
         "http://localhost:3000,http://127.0.0.1:3000"
     )
+    database_url: str = "sqlite:///./storage/mistaketutor.db"
+    auth_secret_key: str = "change-me-in-local-env"
+    auth_token_expire_minutes: int = 1440
 
     @property
     def cors_origins(self) -> list[str]:
@@ -18,6 +21,13 @@ class Settings(BaseSettings):
             for origin in self.backend_cors_origins.split(",")
             if origin.strip()
         ]
+
+    @property
+    def sqlite_path(self) -> str:
+        if not self.database_url.startswith("sqlite:///"):
+            msg = "Only sqlite:/// database URLs are supported by this scaffold."
+            raise ValueError(msg)
+        return self.database_url.replace("sqlite:///", "", 1)
 
     model_config = SettingsConfigDict(
         env_file=".env",
