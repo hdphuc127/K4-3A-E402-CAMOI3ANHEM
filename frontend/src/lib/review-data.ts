@@ -51,25 +51,25 @@ export const TOPICS: Record<TopicId, Topic> = {
 export const WEEKS: Week[] = [
   {
     id: "w1",
-    title: "Tuần 1 — LLM Foundation",
+    title: "Tuần 1 - LLM Foundation",
     subtitle: "Khái niệm nền tảng về mô hình ngôn ngữ lớn",
-    period: "01/09 – 07/09",
+    period: "01/09 - 07/09",
     topics: ["tokenization"],
     available: false,
   },
   {
     id: "w2",
-    title: "Tuần 2 — How LLM Works",
+    title: "Tuần 2 - How LLM Works",
     subtitle: "Từ token tới vector, attention và tool calling",
-    period: "08/09 – 14/09",
+    period: "08/09 - 14/09",
     topics: ["tokenization", "embedding", "attention", "tool-calling"],
     available: true,
   },
   {
     id: "w3",
-    title: "Tuần 3 — AI Agents",
+    title: "Tuần 3 - AI Agents",
     subtitle: "Vòng lặp lập kế hoạch và hành động của agent",
-    period: "15/09 – 21/09",
+    period: "15/09 - 21/09",
     topics: ["tool-calling"],
     available: false,
   },
@@ -82,12 +82,12 @@ export const QUESTIONS: Question[] = [
     prompt: "Token trong một mô hình ngôn ngữ thường tương ứng với điều gì?",
     options: [
       "Luôn luôn là một từ hoàn chỉnh",
-      "Một mảnh văn bản (có thể là từ, phần của từ hoặc dấu câu)",
+      "Một mảnh văn bản, có thể là từ, phần của từ hoặc dấu câu",
       "Một câu hoàn chỉnh",
       "Một ký tự duy nhất",
     ],
     correct: 1,
-    why: "Token là đơn vị văn bản do bộ tokenizer cắt ra, thường nhỏ hơn một từ.",
+    why: "Token là đơn vị văn bản do tokenizer cắt ra, thường nhỏ hơn một từ.",
     misconception: "Nhầm token với từ.",
   },
   {
@@ -115,7 +115,7 @@ export const QUESTIONS: Question[] = [
       "Độ dài của token tính theo ký tự",
     ],
     correct: 2,
-    why: "Embedding là vector số học mã hoá đặc trưng ngữ nghĩa, cho phép đo độ tương đồng.",
+    why: "Embedding là vector số học mã hóa đặc trưng ngữ nghĩa, cho phép đo độ tương đồng.",
     misconception: "Nhầm Token ID với Embedding Vector.",
   },
   {
@@ -135,12 +135,13 @@ export const QUESTIONS: Question[] = [
   {
     id: "q5",
     topic: "attention",
-    prompt: "Trong câu “Con mèo ngồi trên thảm vì nó ấm”, attention giúp mô hình chủ yếu để làm gì?",
+    prompt:
+      "Trong câu 'Con mèo ngồi trên thảm vì nó ấm', attention giúp mô hình chủ yếu để làm gì?",
     options: [
       "Đếm số token trong câu",
-      "Xác định “nó” đang nói tới “thảm”",
+      "Xác định 'nó' đang nói tới 'thảm'",
       "Dịch câu sang tiếng Anh",
-      "Chuẩn hoá chữ hoa chữ thường",
+      "Chuẩn hóa chữ hoa chữ thường",
     ],
     correct: 1,
     why: "Attention liên kết đại từ với danh từ phù hợp dựa trên trọng số ngữ cảnh.",
@@ -169,10 +170,10 @@ export const LESSONS: Record<
   { lesson: string; slides: { title: string; body: string[]; note?: string }[] }
 > = {
   tokenization: {
-    lesson: "Bài 1 — Tokenization",
+    lesson: "Bài 1 - Tokenization",
     slides: [
       {
-        title: "Slide 3 — Token là gì?",
+        title: "Slide 3 - Token là gì?",
         body: [
           "Tokenizer cắt văn bản thành các mảnh nhỏ gọi là token.",
           "Mỗi token được tra cứu trong từ điển để lấy một Token ID.",
@@ -181,51 +182,43 @@ export const LESSONS: Record<
     ],
   },
   embedding: {
-    lesson: "Bài 2 — Embedding",
+    lesson: "Bài 2 - Embedding",
     slides: [
       {
-        title: "Slide 4 — Token ID vs Embedding Vector",
+        title: "Slide 4 - Token ID vs Embedding Vector",
         body: [
-          "Token ID là số thứ tự của token trong từ điển. Nó chỉ dùng để tra cứu, hoàn toàn không mang ý nghĩa.",
-          "Embedding Vector là một dãy số (ví dụ 768 chiều) học được trong quá trình huấn luyện, mã hoá đặc trưng ngữ nghĩa của token.",
-          "Vì vậy hai Token ID gần nhau (105 và 106) không hề đảm bảo hai token có nghĩa gần nhau.",
+          "Token ID là số thứ tự của token trong từ điển, không mang ý nghĩa.",
+          "Embedding Vector là dãy số học được trong quá trình huấn luyện.",
+          "Hai Token ID gần nhau không đảm bảo hai token có nghĩa gần nhau.",
         ],
-        note: "Đây là phần liên quan trực tiếp tới 2 câu bạn làm sai.",
+        note: "Phần này liên quan trực tiếp tới lỗi nhầm Token ID với embedding.",
       },
       {
-        title: "Slide 5 — Khoảng cách ngữ nghĩa",
+        title: "Slide 5 - Khoảng cách ngữ nghĩa",
         body: [
-          "Độ gần nghĩa được đo bằng khoảng cách giữa các embedding vector, thường dùng cosine similarity.",
-          "“mèo” và “chó” có embedding gần nhau dù Token ID có thể cách xa hàng nghìn đơn vị.",
+          "Độ gần nghĩa được đo bằng khoảng cách giữa các embedding vector.",
+          "Các từ gần nghĩa có thể có embedding gần nhau dù Token ID cách xa.",
         ],
       },
     ],
   },
   attention: {
-    lesson: "Bài 3 — Attention",
+    lesson: "Bài 3 - Attention",
     slides: [
       {
-        title: "Slide 2 — Trọng số chú ý",
+        title: "Slide 2 - Trọng số chú ý",
         body: [
-          "Với mỗi token, mô hình tính điểm liên quan tới các token khác trong ngữ cảnh.",
+          "Với mỗi token, mô hình tính điểm liên quan tới các token khác.",
           "Điểm cao nghĩa là token đó ảnh hưởng nhiều hơn tới biểu diễn hiện tại.",
-        ],
-        note: "Phần liên quan tới câu bạn làm sai về đại từ “nó”.",
-      },
-      {
-        title: "Slide 3 — Ví dụ tham chiếu đại từ",
-        body: [
-          "“Con mèo ngồi trên thảm vì nó ấm.” — attention gán trọng số cao giữa “nó” và “thảm”.",
-          "Nhờ đó mô hình hiểu chủ thể đang được nhắc lại là gì.",
         ],
       },
     ],
   },
   "tool-calling": {
-    lesson: "Bài 4 — Tool Calling",
+    lesson: "Bài 4 - Tool Calling",
     slides: [
       {
-        title: "Slide 2 — Vòng đời một lời gọi công cụ",
+        title: "Slide 2 - Vòng đời một lời gọi công cụ",
         body: [
           "Mô hình sinh ra JSON mô tả tên hàm và tham số.",
           "Ứng dụng thực thi hàm rồi trả kết quả lại cho mô hình.",
@@ -255,44 +248,33 @@ export const CHECK_QUESTIONS: Record<TopicId, CheckQuestion[]> = {
         "Không chắc.",
       ],
       correct: 1,
-      whyCorrect:
-        "Chính xác. Token ID chỉ là chỉ số tra cứu; khoảng cách ngữ nghĩa nằm ở embedding vector.",
-      whyWrong:
-        "Chưa đúng. Token ID là số thứ tự trong từ điển, hai ID cạnh nhau có thể là hai từ hoàn toàn khác nghĩa.",
-    },
-    {
-      prompt:
-        "Muốn biết “bác sĩ” và “y tá” có gần nghĩa nhau không, bạn sẽ so sánh cái gì?",
-      options: [
-        "Hiệu số hai Token ID",
-        "Độ dài hai từ",
-        "Cosine similarity giữa hai embedding vector",
-        "Thứ tự xuất hiện trong từ điển",
-      ],
-      correct: 2,
-      whyCorrect: "Đúng rồi. Ngữ nghĩa được đo trên không gian embedding.",
-      whyWrong: "Chưa đúng. Chỉ embedding vector mới mang thông tin ngữ nghĩa để so sánh.",
+      whyCorrect: "Chính xác. Khoảng cách ngữ nghĩa nằm ở embedding vector.",
+      whyWrong: "Chưa đúng. Token ID chỉ là số thứ tự trong từ điển.",
     },
   ],
   attention: [
     {
-      prompt:
-        "Trong câu “Lan đưa sách cho Mai vì cô ấy đã đọc xong”, attention giúp mô hình xử lý điều gì?",
+      prompt: "Attention giúp mô hình xử lý điều gì trong câu có đại từ?",
       options: [
         "Đếm số từ trong câu",
-        "Xác định “cô ấy” tham chiếu tới ai",
+        "Xác định đại từ tham chiếu tới ai/cái gì",
         "Cắt câu thành token",
         "Chuyển câu sang chữ thường",
       ],
       correct: 1,
-      whyCorrect: "Đúng. Attention gán trọng số giữa đại từ và danh từ phù hợp trong ngữ cảnh.",
-      whyWrong: "Chưa đúng. Việc cắt token hay chuẩn hoá chữ diễn ra trước, không phải nhiệm vụ của attention.",
+      whyCorrect: "Đúng. Attention gắn trọng số giữa đại từ và danh từ phù hợp.",
+      whyWrong: "Chưa đúng. Tokenization diễn ra trước, không phải nhiệm vụ chính của attention.",
     },
   ],
   tokenization: [
     {
-      prompt: "“unbelievable” có thể được tokenizer cắt thành nhiều token không?",
-      options: ["Không, mỗi từ là một token", "Có, ví dụ un / believ / able", "Chỉ khi viết hoa", "Chỉ trong tiếng Việt"],
+      prompt: "'unbelievable' có thể được tokenizer cắt thành nhiều token không?",
+      options: [
+        "Không, mỗi từ là một token",
+        "Có, ví dụ un / believ / able",
+        "Chỉ khi viết hoa",
+        "Chỉ trong tiếng Việt",
+      ],
       correct: 1,
       whyCorrect: "Đúng. Tokenizer thường cắt từ dài thành các mảnh nhỏ hơn.",
       whyWrong: "Chưa đúng. Một từ có thể tương ứng nhiều token.",
