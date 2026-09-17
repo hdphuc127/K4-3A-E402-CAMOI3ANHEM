@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.v1.auth import router as auth_router
 from app.api.v1.diagnosis import router as diagnosis_router
 from app.api.v1.health import router as health_router
 from app.core.config import settings
+from app.db.session import initialize_database
 
 
 def create_app() -> FastAPI:
@@ -13,6 +15,10 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
     )
+
+    @app.on_event("startup")
+    def on_startup() -> None:
+        initialize_database()
 
     app.add_middleware(
         CORSMiddleware,
@@ -33,7 +39,11 @@ def create_app() -> FastAPI:
         prefix=f"{settings.api_prefix}",
         tags=["diagnosis"],
     )
-
+    app.include_router(
+        auth_router,
+        prefix=f"{settings.api_prefix}",
+        tags=["auth"],
+    )
     return app
 
 
