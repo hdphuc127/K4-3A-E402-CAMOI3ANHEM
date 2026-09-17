@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-feat/core-apis
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { TutorChat, type ChatMessage } from "@/components/TutorChat";
@@ -15,31 +14,14 @@ import {
   type ReviewTopic,
   type ReviewWeek,
 } from "@/lib/api";
-import { tutorReply, type ChatContext } from "@/lib/tutor-replies";
+import { type ChatContext } from "@/lib/tutor-replies";
+import { requestTutorReplyStream } from "@/lib/chat";
 import {
   CHECK_QUESTIONS as FALLBACK_CHECK_QUESTIONS,
   LESSONS as FALLBACK_LESSONS,
   QUESTIONS as FALLBACK_QUESTIONS,
   TOPICS as FALLBACK_TOPICS,
   WEEKS as FALLBACK_WEEKS,
-=======
-import { useMemo, useRef, useState } from "react";
-import { TutorChat, type ChatMessage } from "@/components/TutorChat";
-import { AdaptiveQuiz } from "@/components/AdaptiveQuiz";
-import { ReviewLayout } from "@/components/ReviewLayout";
-import { SourceViewer } from "@/components/SourceViewer";
-import { CoachLanding } from "@/components/CoachLanding";
-import { type ChatContext } from "@/lib/tutor-replies";
-import { requestTutorReply, type ChatRequest, type ChatSource } from "@/lib/chat";
-import {
-  CHECK_QUESTIONS,
-  DEMO_QUIZ_QUESTION_IDS,
-  LESSONS,
-  QUESTIONS,
-  TOPICS,
-  WEEKS,
-  type TopicId,
-main
 } from "@/lib/review-data";
 
 type TopicId = string;
@@ -79,17 +61,7 @@ const STEP_LABEL: Record<Step, string> = {
   summary: "Tổng kết tuần",
 };
 
-// Presentation grouping only: all existing application states remain intact.
-const DISPLAY_STEPS = ["Khởi động", "Đánh giá", "Ôn tập", "Kiểm tra"];
-const DISPLAY_INDEX: Record<Step, number> = {
-  weeks: 0,
-  week: 0,
-  test: 1,
-  result: 1,
-  lesson: 2,
-  check: 3,
-  summary: 3,
-};
+const FLOW: Step[] = ["weeks", "week", "test", "result", "lesson", "check", "summary"];
 
 let mid = 0;
 const msg = (role: "user" | "ai", text: string): ChatMessage => ({
@@ -114,31 +86,25 @@ function ReviewApp() {
   const [weekId, setWeekId] = useState<string>("w2");
   const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [showAllMistakes, setShowAllMistakes] = useState(false);
   const [status, setStatus] = useState<Record<string, Status>>({});
   const [flagged, setFlagged] = useState<Record<string, boolean>>({});
   const [topic, setTopic] = useState<TopicId>("embedding");
-  const [selectedSource, setSelectedSource] = useState<ChatSource | null>(null);
+  const [slide, setSlide] = useState(0);
   const [checkIdx, setCheckIdx] = useState(0);
   const [checkAnswer, setCheckAnswer] = useState<number | null>(null);
   const [checkSubmitted, setCheckSubmitted] = useState(false);
-feat/core-apis
   const [diagnosisByQuestion, setDiagnosisByQuestion] = useState<Record<string, DiagnosisResult>>(
     {},
   );
   const [isSubmittingDiagnosis, setIsSubmittingDiagnosis] = useState(false);
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
-=======
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
-  const [failedRequest, setFailedRequest] = useState<ChatRequest | null>(null);
-  const chatPending = useRef(false);
-main
   const [messages, setMessages] = useState<ChatMessage[]>([
     msg(
       "ai",
-      "Chào bạn! Mình là AI Tutor. Mình sẽ đi cùng bạn suốt phiên ôn: từ bài kiểm tra, phân tích lỗ hổng, tới nội dung bài học và kiểm tra lại hiểu biết.",
+      "Mình là trợ giảng AI của nền tảng học trực tuyến VLearn, giúp bạn ôn tập và hiểu rõ hơn về các nội dung trong bài giảng. Mình sẽ hỗ trợ bạn tìm kiếm thông tin và giải đáp thắc mắc liên quan đến các kỹ thuật và khái niệm trong lĩnh vực AI, như cách các mô hình LLM hoạt động.",
     ),
   ]);
 
@@ -161,19 +127,15 @@ main
     staleTime: 60_000,
   });
 
-  const TOPICS = (reviewDataQuery.data?.topics ?? FALLBACK_TOPICS) as Record<
-    string,
-    ReviewTopic
-  >;
+  const TOPICS = (reviewDataQuery.data?.topics ?? FALLBACK_TOPICS) as Record<string, ReviewTopic>;
   const WEEKS = (reviewDataQuery.data?.weeks ?? FALLBACK_WEEKS) as ReviewWeek[];
   const QUESTIONS = (reviewDataQuery.data?.questions ?? FALLBACK_QUESTIONS) as ReviewQuestion[];
   const LESSONS = (reviewDataQuery.data?.lessons ?? FALLBACK_LESSONS) as Record<
     string,
     ReviewLesson
   >;
-  const CHECK_QUESTIONS = (
-    reviewDataQuery.data?.check_questions ?? FALLBACK_CHECK_QUESTIONS
-  ) as Record<string, ReviewCheckQuestion[]>;
+  const CHECK_QUESTIONS = (reviewDataQuery.data?.check_questions ??
+    FALLBACK_CHECK_QUESTIONS) as Record<string, ReviewCheckQuestion[]>;
   const getTopic = (id: string): ReviewTopic =>
     TOPICS[id] ?? { id, name: id, summary: "Chưa có mô tả từ backend." };
   const getLesson = (id: string): ReviewLesson =>
@@ -181,20 +143,11 @@ main
       lesson: getTopic(id).name,
       slides: [{ title: getTopic(id).name, body: [getTopic(id).summary] }],
     };
-  const getCheckQuestions = (id: string): ReviewCheckQuestion[] =>
-    CHECK_QUESTIONS[id] ?? [];
+  const getCheckQuestions = (id: string): ReviewCheckQuestion[] => CHECK_QUESTIONS[id] ?? [];
 
   const week = WEEKS.find((w) => w.id === weekId)!;
-  const [isReviewQuiz, setIsReviewQuiz] = useState(false);
-  const [reviewAnswers, setReviewAnswers] = useState<Record<string, number>>({});
-  const [reviewSubmitted, setReviewSubmitted] = useState(false);
-  const [showLanding, setShowLanding] = useState(true);
-  const [showRemainingTopics, setShowRemainingTopics] = useState(false);
   const weekQuestions = useMemo(
-    () =>
-      QUESTIONS.filter(
-        (q) => week.topics.includes(q.topic) && DEMO_QUIZ_QUESTION_IDS.includes(q.id),
-      ),
+    () => QUESTIONS.filter((q) => week.topics.includes(q.topic)),
     [week],
   );
 
@@ -220,11 +173,7 @@ main
   const chatContext: ChatContext = {
     label:
       step === "lesson"
-feat/core-apis
         ? `${getLesson(topic).lesson} - ${getLesson(topic).slides[slide]!.title}`
-=======
-        ? selectedSource?.title?.trim() || LESSONS[topic].lesson
-main
         : step === "check"
           ? `Kiểm tra hiểu — ${getTopic(topic).name}`
           : step === "result"
@@ -233,40 +182,40 @@ main
     topic: (step === "weeks" || step === "week" ? undefined : topic) as ChatContext["topic"],
   };
 
-  const receiveReply = async (request: ChatRequest) => {
-    // A ref also blocks repeated sends before React renders the loading state.
-    if (chatPending.current) return;
-    chatPending.current = true;
-    setChatLoading(true);
-    setChatError(null);
-    setFailedRequest(null);
-    try {
-      const reply = await requestTutorReply(request);
-      if (!reply.text.trim()) throw new Error("Empty tutor reply");
-      const response: ChatMessage = { ...msg("ai", reply.text), ...reply, kind: "reply" };
-      setMessages((prev) => [...prev, response]);
-    } catch {
-      setFailedRequest(request);
-      setChatError(
-        "Chưa nhận được câu trả lời. Câu hỏi của bạn vẫn được giữ lại; hãy thử lại nhé.",
-      );
-    } finally {
-      chatPending.current = false;
-      setChatLoading(false);
-    }
-  };
-
   const send = (text: string) => {
     const question = text.trim();
-    if (chatPending.current || !question) return;
+    if (!question || chatLoading) return;
     const userMessage = msg("user", question);
-    const request: ChatRequest = {
-      text: question,
-      context: { ...chatContext },
-      messages: [...messages, userMessage],
-    };
-    setMessages((prev) => [...prev, userMessage]);
-    void receiveReply(request);
+    const history = [...messages, userMessage];
+    const assistantMessage = { ...msg("ai", ""), kind: "reply" as const };
+    setMessages([...history, assistantMessage]);
+    setChatLoading(true);
+    setChatError(null);
+    void requestTutorReplyStream(
+      { text: question, context: chatContext, messages: history },
+      (delta) => {
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === assistantMessage.id
+              ? { ...message, text: message.text + delta }
+              : message,
+          ),
+        );
+      },
+    )
+      .then((reply) => {
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === assistantMessage.id
+              ? { ...message, text: reply.text, citations: reply.citations ?? [] }
+              : message,
+          ),
+        );
+      })
+      .catch((error: unknown) => {
+        setChatError(error instanceof Error ? error.message : "Không thể kết nối AI Tutor");
+      })
+      .finally(() => setChatLoading(false));
   };
 
   const submitTest = async () => {
@@ -300,16 +249,11 @@ main
   const aiSay = (text: string) => setMessages((prev) => [...prev, msg("ai", text)]);
 
   const goLesson = (t: TopicId) => {
-    setShowRemainingTopics(false);
     setTopic(t);
-    setSelectedSource(null);
+    setSlide(0);
     setStep("lesson");
     aiSay(
-feat/core-apis
       `Mình đã mở ${getLesson(t).lesson} - ${getLesson(t).slides[0]!.title}. Đây đúng là phần liên quan tới lỗi sai của bạn. Bạn cứ đọc, có gì hỏi mình ngay tại đây nhé.`,
-=======
-      `Mình sẽ cùng bạn ôn ${LESSONS[t].lesson}. Bạn có thể hỏi mình ngay tại đây và mở nguồn từ citation khi câu trả lời có cung cấp.`,
-main
     );
   };
 
@@ -322,61 +266,52 @@ main
     );
   };
 
-  const startReviewQuiz = () => {
-    if (chatPending.current) return;
-    setIsReviewQuiz(true);
-    setReviewAnswers({});
-    setReviewSubmitted(false);
-    setStep("test");
-  };
-
   const remaining = week.topics.filter((t) => topicStatus(t) === "needs");
 
   return (
-    <>
-      {showLanding && (
-        <CoachLanding
-          onStart={() => {
-            setStep("weeks");
-            setShowLanding(false);
-          }}
-        />
-      )}
-      <ReviewLayout
-        hidden={showLanding}
-        step={step}
-        label={STEP_LABEL[step]}
-        steps={DISPLAY_STEPS}
-        activeIndex={step === "test" && isReviewQuiz ? 3 : DISPLAY_INDEX[step]}
-        onHome={() => setShowLanding(true)}
-        messageCount={messages.length}
-        sourcePanel={
-          selectedSource ? (
-            <SourceViewer source={selectedSource} onClose={() => setSelectedSource(null)} />
-          ) : null
-        }
-        tutor={
-          <TutorChat
-            messages={messages}
-            context={chatContext}
-            onSend={send}
-            onOpenSource={(source) => {
-              setSelectedSource(source);
-              setStep("lesson");
-            }}
-            isLoading={chatLoading}
-            error={chatError}
-            onRetry={() => {
-              if (failedRequest) void receiveReply(failedRequest);
-            }}
-            onCheckMe={step === "result" ? startCheck : undefined}
-            onRetest={step === "lesson" ? startReviewQuiz : undefined}
-          />
-        }
-      >
-        <section
-          className={`coach-content min-w-0 space-y-4 ${step === "lesson" ? "col-span-full border-b border-border px-4 py-3" : step === "test" || step === "check" ? "mx-auto max-w-full" : step === "result" || step === "summary" ? "mx-auto max-w-full" : ""}`}
-        >
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border bg-card">
+        <div className="mx-auto flex min-h-24 max-w-[1600px] items-center gap-8 px-8">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-base font-bold text-primary-foreground">
+              Ô
+            </div>
+            <div>
+              <h1 className="text-base font-semibold text-foreground">Ôn tập thông minh</h1>
+              <p className="text-sm text-muted-foreground">
+                Biết mình yếu chỗ nào — và ôn đúng chỗ đó trước
+              </p>
+            </div>
+          </div>
+          <nav
+            aria-label="Tiến trình ôn tập"
+            className="ml-auto flex min-w-0 items-center gap-1.5 overflow-x-auto text-sm"
+          >
+            {FLOW.map((flowStep, index) => {
+              const activeIndex = FLOW.indexOf(step);
+              const active = flowStep === step;
+              const done = index < activeIndex;
+              return (
+                <span
+                  key={flowStep}
+                  aria-current={active ? "step" : undefined}
+                  className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 ${
+                    active
+                      ? "bg-primary font-semibold text-primary-foreground"
+                      : done
+                        ? "text-primary"
+                        : "text-muted-foreground"
+                  }`}
+                >
+                  {index + 1}. {STEP_LABEL[flowStep]}
+                </span>
+              );
+            })}
+          </nav>
+        </div>
+      </header>
+      <main className="mx-auto grid max-w-7xl gap-6 px-6 py-6 lg:grid-cols-[1fr_380px]">
+        <section className="min-w-0 space-y-4">
           {step === "weeks" && (
             <>
               <div className="mx-auto max-w-4xl">
@@ -388,7 +323,6 @@ main
                   Mỗi tuần gồm các bài đã học. Chọn một tuần để bắt đầu kiểm tra nhanh.
                 </p>
               </div>
-feat/core-apis
               <div className="rounded-xl border border-border bg-card p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -403,9 +337,7 @@ feat/core-apis
                 </div>
 
                 {modulesQuery.isLoading && (
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    Đang tải danh sách module...
-                  </p>
+                  <p className="mt-3 text-sm text-muted-foreground">Đang tải danh sách module...</p>
                 )}
 
                 {modulesQuery.isError && (
@@ -485,9 +417,6 @@ feat/core-apis
                 )}
               </div>
               <div className="grid gap-3">
-=======
-              <div className="mx-auto grid max-w-4xl gap-3 pt-2">
-main
                 {WEEKS.map((w) => (
                   <button
                     key={w.id}
@@ -499,10 +428,11 @@ main
                     className={`coach-week-card flex items-center gap-3 rounded-xl border bg-card p-3 text-left transition-colors ${
                       w.available && weekId === w.id
                         ? "border-primary shadow-sm ring-1 ring-primary/15"
-                        : w.available ? "border-border" : "border-border opacity-55"
+                        : w.available
+                          ? "border-border"
+                          : "border-border opacity-55"
                     }`}
                   >
-feat/core-apis
                     <div className="flex items-center justify-between">
                       <h3 className="font-medium text-foreground">{w.title}</h3>
                       <span className="text-xs text-muted-foreground">{w.period}</span>
@@ -520,46 +450,24 @@ feat/core-apis
                       {!w.available && (
                         <span className="text-xs text-muted-foreground">
                           · Bản demo: chọn Tuần 2
-=======
-                    <span
-                      aria-hidden="true"
-                      className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary text-xl text-primary"
-                    >
-                      &#9636;
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-foreground">{w.title}</span>
-                      <span className="mt-1 block text-xs text-muted-foreground">{w.period}</span>
-                      {!w.available && (
-                        <span className="mt-1 block text-[11px] text-muted-foreground">
-                          Chưa mở
-main
                         </span>
                       )}
-                      <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                        {w.subtitle}
-                      </span>
-                    </span>
-                    <span aria-hidden="true" className="text-lg text-primary">
-                      &#8250;
-                    </span>
+                    </div>
                   </button>
                 ))}
               </div>
               <button
-                type="button"
-                disabled={!week.available}
                 onClick={() => {
                   setAnswers({});
-                  setQuizSubmitted(false);
                   setStatus({});
                   setFlagged({});
                   setShowAllMistakes(false);
                   setStep("week");
                 }}
-                className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-40"
+                disabled={!week.available}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-40"
               >
-                Tiếp tục →
+                Tiếp tục
               </button>
             </>
           )}
@@ -572,7 +480,6 @@ main
               >
                 ← Quay lại danh sách tuần
               </button>
-feat/core-apis
               <div className="rounded-xl border border-border bg-card p-5">
                 <h2 className="text-xl font-semibold text-foreground">{week.title}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -586,56 +493,29 @@ feat/core-apis
                       <p className="mt-0.5 text-xs text-muted-foreground">{getTopic(t).summary}</p>
                     </div>
                   ))}
-=======
-              <div className="grid gap-4">
-                <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-                  <h2 className="text-xl font-semibold text-foreground">{week.title}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Kiểm tra nhanh để biết phần nào bạn cần ôn lại. Khoảng 3 phút,{" "}
-                    {weekQuestions.length} câu.
-                  </p>
-                  <div className="mt-4 grid gap-2">
-                    {week.topics.map((t) => (
-                      <div key={t} className="rounded-xl border border-border bg-surface px-5 py-4">
-                        <p className="text-sm font-medium text-foreground">{TOPICS[t].name}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">{TOPICS[t].summary}</p>
-                      </div>
-                    ))}
-                  </div>
-main
                 </div>
-                <div className="rounded-2xl border border-primary bg-card p-6 ring-1 ring-primary/15 sm:p-8">
-                  <h3 className="text-xl font-semibold">Kiểm tra cuối tuần</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {weekQuestions.length} câu · khoảng 3 phút
-                  </p>
-                  <div className="mt-4 flex flex-col gap-2">
-                    <button
-                      onClick={() => {
-                        setIsReviewQuiz(false);
-                        setStep("test");
-                      }}
-                      className="rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
-                    >
-                      Bắt đầu kiểm tra nhanh →
-                    </button>
-                    <button
-                      onClick={() => goLesson(week.topics[0]!)}
-                      className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm hover:border-primary"
-                    >
-                      Xem nội dung tuần
-                    </button>
-                  </div>
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    Bài kiểm tra không nhằm chấm điểm — nó dùng để xác định bạn đang yếu ở đâu.
-                  </p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setStep("test")}
+                    className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                  >
+                    Bắt đầu kiểm tra
+                  </button>
+                  <button
+                    onClick={() => goLesson(week.topics[0]!)}
+                    className="rounded-lg border border-border px-4 py-2 text-sm hover:border-primary"
+                  >
+                    Xem nội dung tuần
+                  </button>
                 </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Bài kiểm tra không nhằm chấm điểm — nó dùng để xác định bạn đang yếu ở đâu.
+                </p>
               </div>
             </>
           )}
 
           {step === "test" && (
-feat/core-apis
             <>
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-foreground">
@@ -692,95 +572,10 @@ feat/core-apis
                 </button>
               </div>
             </>
-=======
-            <AdaptiveQuiz
-              key={isReviewQuiz ? "review" : "diagnostic"}
-              title={`${isReviewQuiz ? "Kiểm tra lại" : "Bài kiểm tra nhanh"} — ${week.title}`}
-              questions={weekQuestions}
-              answers={isReviewQuiz ? reviewAnswers : answers}
-              submitted={isReviewQuiz ? reviewSubmitted : quizSubmitted}
-              continueLabel={isReviewQuiz ? "Tiếp tục nội dung khác" : "Xem kết quả & ôn tập"}
-              topicLabels={Object.fromEntries(Object.values(TOPICS).map((t) => [t.id, t.name]))}
-              onPick={(questionId, answer) => {
-                if (isReviewQuiz) {
-                  if (!reviewSubmitted)
-                    setReviewAnswers((prev) => ({ ...prev, [questionId]: answer }));
-                } else if (!quizSubmitted)
-                  setAnswers((prev) => ({ ...prev, [questionId]: answer }));
-              }}
-              onSubmit={() => {
-                if (isReviewQuiz) setReviewSubmitted(true);
-                else setQuizSubmitted(true);
-              }}
-              onContinue={() => {
-                if (isReviewQuiz) {
-                  setShowRemainingTopics(true);
-                  setStep("lesson");
-                  return;
-                }
-                setStep("result");
-                aiSay(
-                  "Mình đã xem bài làm của bạn. Kết quả và phân tích lỗ hổng đang ở bên trái. Bạn có thể hỏi mình “Tại sao tôi sai câu này?” bất cứ lúc nào.",
-                );
-              }}
-              onBack={() => setStep(isReviewQuiz ? "lesson" : "week")}
-            />
-main
           )}
 
           {step === "result" && (
             <>
-feat/core-apis
-              <div className="rounded-xl border border-border bg-card p-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-xl font-semibold text-foreground">
-                      Kết quả & lỗ hổng kiến thức
-                    </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Đúng {correctCount}/{weekQuestions.length} câu. Quan trọng hơn điểm số: bạn
-                      nên ôn gì trước.
-                    </p>
-                  </div>
-                  <div className="text-3xl font-semibold text-primary">
-                    {correctCount}/{weekQuestions.length}
-                  </div>
-                </div>
-
-                {priority ? (
-                  <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
-                    <p className="text-sm font-semibold text-primary">
-                      Ưu tiên ôn: {getTopic(priority).name}
-                    </p>
-                    <p className="mt-1 text-sm text-foreground">
-                      {wrongByTopic[priority]! >= 2
-                        ? `Các câu trả lời của bạn cho thấy bạn có thể đang nhầm ${
-                            priority === "embedding"
-                              ? "Token ID với Embedding Vector"
-                              : `bản chất của ${getTopic(priority).name}`
-                          }.`
-                        : "Chưa đủ thông tin để kết luận chắc chắn bạn hiểu nhầm ở đâu. Hãy làm thêm một câu kiểm tra."}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        onClick={() => goLesson(priority)}
-                        className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
-                      >
-                        Ôn phần này
-                      </button>
-                      <button
-                        onClick={() => send("Tại sao tôi sai câu này?")}
-                        className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm hover:border-primary"
-                      >
-                        Tại sao tôi sai?
-                      </button>
-                      <button
-                        onClick={() => setShowAllMistakes((v) => !v)}
-                        className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm hover:border-primary"
-                      >
-                        {showAllMistakes ? "Ẩn lỗi sai" : "Xem tất cả lỗi sai"}
-                      </button>
-=======
               <div className="grid gap-4">
                 <div className="rounded-2xl border border-border bg-card p-4 text-center">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -801,56 +596,20 @@ feat/core-apis
                         Đúng {correctCount}/{weekQuestions.length} câu. Quan trọng hơn điểm số: bạn
                         nên ôn gì trước.
                       </p>
-main
                     </div>
                   </div>
 
-feat/core-apis
-                <div className="mt-5 grid gap-2">
-                  {week.topics.map((t) => (
-                    <div
-                      key={t}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-3"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-foreground">
-                          {getTopic(t).name}
-                          {wrongByTopic[t]
-                            ? ` — sai ${wrongByTopic[t]} câu`
-                            : " — không sai câu nào"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{getTopic(t).summary}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <StatusPill status={topicStatus(t)} />
-                        {topicStatus(t) === "needs" && (
-                          <>
-                            <button
-                              onClick={() => goLesson(t)}
-                              className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:opacity-90"
-                            >
-                              Ôn phần này
-                            </button>
-                            <button
-                              onClick={() => setFlagged((f) => ({ ...f, [t]: !f[t] }))}
-                              className="rounded-md border border-border px-2.5 py-1 text-xs hover:border-primary"
-                            >
-                              {flagged[t] ? "✓ Đã đánh dấu" : "Đánh dấu cần ôn lại"}
-                            </button>
-                          </>
-                        )}
-=======
                   {priority ? (
                     <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
                       <p className="text-sm font-semibold text-primary">
-                        Ưu tiên ôn: {TOPICS[priority].name}
+                        Ưu tiên ôn: {getTopic(priority).name}
                       </p>
                       <p className="mt-1 text-sm text-foreground">
                         {wrongByTopic[priority]! >= 2
                           ? `Các câu trả lời của bạn cho thấy bạn có thể đang nhầm ${
                               priority === "embedding"
                                 ? "Token ID với Embedding Vector"
-                                : `bản chất của ${TOPICS[priority].name}`
+                                : `bản chất của ${getTopic(priority).name}`
                             }.`
                           : "Chưa đủ thông tin để kết luận chắc chắn bạn hiểu nhầm ở đâu. Hãy làm thêm một câu kiểm tra."}
                       </p>
@@ -873,7 +632,6 @@ feat/core-apis
                         >
                           {showAllMistakes ? "Ẩn lỗi sai" : "Xem tất cả lỗi sai"}
                         </button>
-main
                       </div>
                     </div>
                   ) : (
@@ -890,12 +648,12 @@ main
                       >
                         <div>
                           <p className="text-sm font-medium text-foreground">
-                            {TOPICS[t].name}
+                            {getTopic(t).name}
                             {wrongByTopic[t]
                               ? ` — sai ${wrongByTopic[t]} câu`
                               : " — không sai câu nào"}
                           </p>
-                          <p className="text-xs text-muted-foreground">{TOPICS[t].summary}</p>
+                          <p className="text-xs text-muted-foreground">{getTopic(t).summary}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <StatusPill status={topicStatus(t)} />
@@ -994,37 +752,6 @@ main
 
           {step === "lesson" && (
             <>
-              {showRemainingTopics && (
-                <div className="rounded-xl border border-border bg-surface p-4">
-                  <h2 className="text-sm font-semibold">Chọn nội dung cần ôn tiếp</h2>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {remaining
-                      .filter((t) => t !== topic)
-                      .map((t) => (
-                        <button
-                          type="button"
-                          key={t}
-                          onClick={() => goLesson(t)}
-                          className="rounded-xl border border-primary/20 bg-card px-3 py-2 text-sm text-primary"
-                        >
-                          {TOPICS[t].name}
-                        </button>
-                      ))}
-                    {!remaining.some((t) => t !== topic) && (
-                      <p className="text-xs text-muted-foreground">
-                        Không có topic yếu khác trong kết quả kiểm tra hiện tại.
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowRemainingTopics(false)}
-                    className="mt-3 text-xs text-primary"
-                  >
-                    Tiếp tục chat
-                  </button>
-                </div>
-              )}
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <button
                   onClick={() => setStep("result")}
@@ -1035,7 +762,6 @@ main
                 <span className="text-muted-foreground">/</span>
                 <span className="text-foreground">{getLesson(topic).lesson}</span>
               </div>
-feat/core-apis
               <div className="rounded-xl border border-border bg-card p-5">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">
                   Khái niệm liên quan tới lỗi sai của bạn
@@ -1073,23 +799,13 @@ feat/core-apis
                   <span className="text-xs text-muted-foreground">
                     Slide {slide + 1}/{getLesson(topic).slides.length}
                   </span>
-=======
-              <div className="flex flex-wrap gap-2">
-                {week.topics.map((t) => (
-main
-                  <button
-                    type="button"
-                    key={t}
-                    aria-pressed={t === topic}
-                    onClick={() => {
-                      if (t !== topic) goLesson(t);
-                    }}
-                    className={`rounded-xl border px-3 py-2 text-xs ${t === topic ? "border-primary bg-secondary text-primary" : "border-border bg-card text-muted-foreground"}`}
-                  >
-                    {TOPICS[t].name}
-                    {topicStatus(t) === "needs" ? " · Cần ôn" : ""}
-                  </button>
-                ))}
+                </div>
+                <button
+                  onClick={startCheck}
+                  className="ml-auto rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                >
+                  Kiểm tra lại tôi
+                </button>
               </div>
             </>
           )}
@@ -1118,10 +834,7 @@ main
               onBackToLesson={() => setStep("lesson")}
               onExplainDifferently={() => send("Giải thích dễ hiểu hơn")}
               onAnotherExample={() => send("Cho tôi ví dụ khác")}
-              onNext={() => {
-                setShowRemainingTopics(true);
-                setStep("lesson");
-              }}
+              onNext={() => setStep("summary")}
               onLater={() => {
                 setStatus((s) => ({ ...s, [topic]: "needs" }));
                 setStep("summary");
@@ -1133,11 +846,7 @@ main
 
           {step === "summary" && (
             <>
-feat/core-apis
-              <div className="rounded-xl border border-border bg-card p-5">
-=======
               <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
-main
                 <h2 className="text-xl font-semibold text-foreground">
                   Tổng kết tuần — {week.title}
                 </h2>
@@ -1184,11 +893,7 @@ main
                     <strong>Đã ôn:</strong>{" "}
                     {week.topics
                       .filter((t) => topicStatus(t) === "reviewed")
-feat/core-apis
                       .map((t) => getTopic(t).name)
-=======
-                      .map((t) => TOPICS[t].name)
-main
                       .join(", ") || "chưa có"}
                   </p>
                   <p className="mt-1">
@@ -1228,8 +933,19 @@ main
             </>
           )}
         </section>
-      </ReviewLayout>
-    </>
+        <div className="h-[calc(100vh-7rem)] lg:sticky lg:top-6">
+          <TutorChat
+            messages={messages}
+            context={chatContext}
+            onSend={send}
+            isLoading={chatLoading}
+            error={chatError}
+            onRetry={() => undefined}
+            onCheckMe={step === "lesson" || step === "result" ? startCheck : undefined}
+          />
+        </div>
+      </main>
+    </div>
   );
 }
 
@@ -1282,11 +998,7 @@ function CheckPanel(props: {
             return (
               <label
                 key={i}
-feat/core-apis
-                className={`flex cursor-pointer items-center gap-2 rounded-lg border p-2.5 text-sm ${state}`}
-=======
                 className={`flex cursor-pointer items-start gap-4 rounded-xl border px-5 py-4 text-sm leading-relaxed focus-within:ring-2 focus-within:ring-ring ${state}`}
-main
               >
                 <input
                   type="radio"
@@ -1380,11 +1092,7 @@ main
                     onClick={props.onNext}
                     className="rounded-lg border border-border px-3 py-1.5 text-sm hover:border-primary"
                   >
-feat/core-apis
                     Xem tổng kết tuần
-=======
-                    Tiếp tục nội dung khác
-main
                   </button>
                 </>
               )}
