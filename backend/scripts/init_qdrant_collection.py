@@ -4,7 +4,7 @@ import urllib.error
 import urllib.request
 
 QDRANT_URL = os.getenv("QDRANT_URL", "http://127.0.0.1:6663").rstrip("/")
-VECTOR_SIZE = int(os.getenv("EMBEDDING_DIM", "768"))
+VECTOR_SIZE = int(os.getenv("EMBEDDING_DIM", "1536"))
 
 COLLECTIONS = {
     os.getenv("QDRANT_SOURCES_COLLECTION", "mistaketutor_sources"): {

@@ -172,11 +172,24 @@ def seed_default_learning_content(connection: sqlite3.Connection) -> None:
 
 
 def _ensure_learning_module(connection: sqlite3.Connection) -> int:
+    title = "Review chương LLM"
+    description = (
+        "Phiên teach-back giúp học viên phát hiện lỗ hổng kiến thức "
+        "sau khi học chương LLM."
+    )
     row = connection.execute(
         "SELECT id FROM learning_modules WHERE slug = ?",
         ("llm-review",),
     ).fetchone()
     if row is not None:
+        connection.execute(
+            """
+            UPDATE learning_modules
+            SET title = ?, description = ?, track = ?
+            WHERE id = ?
+            """,
+            (title, description, "D", int(row["id"])),
+        )
         return int(row["id"])
     cursor = connection.execute(
         """
@@ -185,8 +198,8 @@ def _ensure_learning_module(connection: sqlite3.Connection) -> int:
         """,
         (
             "llm-review",
-            "Review chuong LLM",
-            "Phien teach-back giup hoc vien phat hien lo hong kien thuc sau khi hoc chuong LLM.",
+            title,
+            description,
             "D",
         ),
     )
@@ -194,11 +207,29 @@ def _ensure_learning_module(connection: sqlite3.Connection) -> int:
 
 
 def _ensure_concept(connection: sqlite3.Connection, module_id: int) -> int:
+    title = "Vì sao LLM có thể bịa"
+    expected_summary = (
+        "Học viên cần giải thích được LLM dự đoán token dựa trên mẫu đã học, "
+        "nên có thể tạo câu nghe hợp lý nhưng sai nếu thiếu nguồn căn cứ hoặc "
+        "truy hồi sai ngữ cảnh."
+    )
+    common_gap = (
+        "Chỉ nói 'AI chưa đủ thông minh' mà không nêu cơ chế dự đoán token "
+        "và giới hạn nguồn căn cứ."
+    )
     row = connection.execute(
         "SELECT id FROM concepts WHERE module_id = ? AND slug = ?",
         (module_id, "why-llm-hallucinates"),
     ).fetchone()
     if row is not None:
+        connection.execute(
+            """
+            UPDATE concepts
+            SET title = ?, expected_summary = ?, common_gap = ?
+            WHERE id = ?
+            """,
+            (title, expected_summary, common_gap, int(row["id"])),
+        )
         return int(row["id"])
     cursor = connection.execute(
         """
@@ -210,20 +241,35 @@ def _ensure_concept(connection: sqlite3.Connection, module_id: int) -> int:
         (
             module_id,
             "why-llm-hallucinates",
-            "Vi sao LLM co the bia",
-            "Hoc vien can giai thich duoc LLM du doan token dua tren mau da hoc, nen co the tao cau nghe hop ly nhung sai neu thieu nguon can cu hoac truy hoi sai ngu canh.",
-            "Chi noi 'AI chua du thong minh' ma khong neu co che du doan token va gioi han nguon can cu.",
+            title,
+            expected_summary,
+            common_gap,
         ),
     )
     return int(cursor.lastrowid)
 
 
 def _ensure_source_chunk(connection: sqlite3.Connection, concept_id: int) -> int:
+    title = "Transcript chương LLM - Hallucination"
+    excerpt = (
+        "LLM sinh câu trả lời bằng cách dự đoán token tiếp theo dựa trên xác suất "
+        "và ngữ cảnh. Nếu ngữ cảnh thiếu, nguồn căn cứ sai, hoặc mô hình không có "
+        "cơ chế kiểm chứng sự thật, câu trả lời có thể nghe hợp lý nhưng không đúng."
+    )
+    citation_label = "Transcript LLM / Hallucination / đoạn 01"
     row = connection.execute(
         "SELECT id FROM source_chunks WHERE source_id = ?",
         ("llm-hallucination-transcript-01",),
     ).fetchone()
     if row is not None:
+        connection.execute(
+            """
+            UPDATE source_chunks
+            SET concept_id = ?, title = ?, excerpt = ?, citation_label = ?
+            WHERE id = ?
+            """,
+            (concept_id, title, excerpt, citation_label, int(row["id"])),
+        )
         return int(row["id"])
     cursor = connection.execute(
         """
@@ -236,9 +282,9 @@ def _ensure_source_chunk(connection: sqlite3.Connection, concept_id: int) -> int
             concept_id,
             "llm-hallucination-transcript-01",
             "transcript",
-            "Transcript chuong LLM - Hallucination",
-            "LLM sinh cau tra loi bang cach du doan token tiep theo dua tren xac suat va ngu canh. Neu ngu canh thieu, nguon can cu sai, hoac mo hinh khong co co che kiem chung su that, cau tra loi co the nghe hop ly nhung khong dung.",
-            "Transcript LLM / Hallucination / doan 01",
+            title,
+            excerpt,
+            citation_label,
         ),
     )
     return int(cursor.lastrowid)

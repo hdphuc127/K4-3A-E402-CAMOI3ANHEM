@@ -13,7 +13,10 @@ def diagnose_mistake(request: DiagnosisRequest) -> DiagnosisResult:
     request -> retrieve context -> prompt -> diagnosis -> citation.
     Replace the rule block with a real LLM call when API keys are available.
     """
-    context = retrieve_tokenization_context(request.lesson_id)
+    context = retrieve_tokenization_context(
+        request.lesson_id,
+        query=f"{request.question_text}\n{request.student_answer}",
+    )
     normalized_answer = request.student_answer.strip().lower()
 
     if normalized_answer in {"3", "three", "ba"}:

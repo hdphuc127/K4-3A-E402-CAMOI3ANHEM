@@ -9,13 +9,44 @@ services:
     environment:
       QDRANT_URL: http://qdrant:6333
       VECTOR_STORE_PROVIDER: qdrant
+      EMBEDDING_PROVIDER: openai
+      OPENAI_EMBEDDING_MODEL: text-embedding-3-small
+      EMBEDDING_DIM: 1536
     ports:
       - "8000:8000"
     volumes:
       - ../storage:/app/storage
     depends_on:
-      - qdrant
+      qdrant:
+        condition: service_started
+      rag-ingest:
+        condition: service_completed_successfully
     restart: unless-stopped
+
+  rag-ingest:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: mistaketutor-rag-ingest
+    env_file:
+      - ../.env
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      VECTOR_STORE_PROVIDER: qdrant
+      VLEARN_PACK_PATH: /app/data/vlearn-pack
+      EMBEDDING_PROVIDER: openai
+      OPENAI_EMBEDDING_MODEL: text-embedding-3-small
+      EMBEDDING_DIM: 1536
+      RAG_CHUNK_CHARS: 1400
+      RAG_CHUNK_OVERLAP: 180
+      VLEARN_CHATLOG_MAX_ROWS: 3000
+    command: ["python", "scripts/ingest_vlearn_pack.py"]
+    volumes:
+      - ../../../data/vlearn-pack:/app/data/vlearn-pack:ro
+    depends_on:
+      qdrant:
+        condition: service_started
+    restart: "no"
 
   db-ui:
     build:
@@ -27,6 +58,9 @@ services:
     environment:
       QDRANT_URL: http://qdrant:6333
       VECTOR_STORE_PROVIDER: qdrant
+      EMBEDDING_PROVIDER: openai
+      OPENAI_EMBEDDING_MODEL: text-embedding-3-small
+      EMBEDDING_DIM: 1536
     command: ["uvicorn", "app.db_ui:app", "--host", "0.0.0.0", "--port", "8001"]
     ports:
       - "8001:8001"
