@@ -16,6 +16,8 @@ class Settings(BaseSettings):
 
     gemini_api_key: str = ""
     openai_api_key: str = ""
+    openrouter_api_key: str = ""
+    openrouter_model: str = "openai/gpt-4o-mini"
     llm_primary_provider: str = "gemini"
     llm_fallback_provider: str = "openai"
     llm_deadline_s: float = 10.0
