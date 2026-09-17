@@ -1,34 +1,26 @@
 # Qdrant Schema - MistakeTutor
 
-Qdrant is used as the vector store for transcript/slide chunks that support teach-back diagnosis.
+Qdrant stores vectors for the Track D teach-back flow: source retrieval, learner explanations, AI gap diagnoses, and golden eval cases.
 
 ## Runtime
 
-Docker service:
+| Context | URL |
+|---|---|
+| From host machine | `http://127.0.0.1:6663` |
+| From Docker backend container | `http://qdrant:6333` |
+| Dashboard | `http://127.0.0.1:6663/dashboard` |
 
-```text
-mistaketutor-qdrant
+Important: inside Docker, do **not** use `127.0.0.1:6663`. The backend container must call Qdrant by service name:
+
+```env
+QDRANT_URL=http://qdrant:6333
 ```
 
-External HTTP port:
+`docker/docker-compose.yml` already overrides this value for containers.
 
-```text
-http://127.0.0.1:6663
-```
+## Vector Config
 
-Internal container port:
-
-```text
-6333
-```
-
-Collection:
-
-```text
-mistaketutor_sources
-```
-
-Default vector config:
+All collections use the same vector config:
 
 ```json
 {
@@ -37,11 +29,32 @@ Default vector config:
 }
 ```
 
-The vector size should match the embedding model. Keep `EMBEDDING_DIM=768` unless the embedding provider changes.
+Keep `EMBEDDING_DIM=768` unless the embedding model changes.
 
-## Payload JSON
+## Collections
 
-Each Qdrant point should use this payload shape:
+The init script creates these collections:
+
+```text
+mistaketutor_sources
+mistaketutor_explanations
+mistaketutor_gap_diagnoses
+mistaketutor_eval_cases
+```
+
+Run:
+
+```powershell
+cd D:\Sourcecode\vinai\lab\hackathon\K4-3A-E402-CAMOI3ANHEM\backend\docker
+docker compose up --build -d backend qdrant
+docker compose exec backend python scripts/init_qdrant_collection.py
+```
+
+## 1. `mistaketutor_sources`
+
+Stores transcript, slide, rubric, and synthetic fixture chunks used for citation and retrieval.
+
+Payload:
 
 ```json
 {
@@ -60,47 +73,13 @@ Each Qdrant point should use this payload shape:
     "source_grounding_limits",
     "plausible_vs_true"
   ],
-  "common_gap": "Chi noi AI chua du thong minh ma khong neu co che du doan token.",
-  "tags": [
-    "llm",
-    "hallucination",
-    "teach-back",
-    "track-d"
-  ],
+  "common_gap": "Chi noi AI chua du thong minh ma khong neu co co che du doan token.",
+  "tags": ["llm", "hallucination", "teach-back", "track-d"],
   "created_at": "2026-09-17T00:00:00Z"
 }
 ```
 
-## Required fields
-
-| Field | Type | Purpose |
-|---|---|---|
-| `source_id` | string | Stable id for source/chunk |
-| `source_type` | string | `transcript`, `slide`, `rubric`, or `synthetic_fixture` |
-| `track` | string | Hackathon track, here `D` |
-| `module_slug` | string | Learning module, e.g. `llm-review` |
-| `concept_slug` | string | Concept, e.g. `why-llm-hallucinates` |
-| `title` | string | Human-readable source title |
-| `excerpt` | string | Short source excerpt shown to learners |
-| `citation_label` | string | Citation label rendered in UI |
-| `chunk_index` | integer | Order inside a source |
-| `tags` | string[] | Filter/search tags |
-| `created_at` | datetime string | Point creation time |
-
-## Optional fields
-
-| Field | Type | Purpose |
-|---|---|---|
-| `lesson_id` | string | Alias for UI lesson selection |
-| `rubric_refs` | string[] | Rubric criteria supported by the chunk |
-| `common_gap` | string | Misconception this chunk helps diagnose |
-| `page` | integer | Slide/page number if available |
-| `timestamp_start` | number | Transcript start time if available |
-| `timestamp_end` | number | Transcript end time if available |
-
-## Payload indexes
-
-The init script creates indexes for:
+Indexes:
 
 ```text
 source_id
@@ -112,28 +91,123 @@ tags
 created_at
 ```
 
-## Commands
+## 2. `mistaketutor_explanations`
 
-Start Qdrant:
+Stores learner teach-back answers. Use it later for similarity search between weak explanations.
 
-```powershell
-docker compose -f docker-compose.qdrant.yml up -d
+Payload:
+
+```json
+{
+  "user_id": 1,
+  "session_id": 1,
+  "attempt_id": 1,
+  "module_slug": "llm-review",
+  "concept_slug": "why-llm-hallucinates",
+  "attempt_no": 1,
+  "prompt": "Hay giai thich vi sao LLM co the bia ma khong nhin tai lieu.",
+  "student_explanation": "Vi AI chua du thong minh nen tra loi sai.",
+  "created_at": "2026-09-17T00:00:00Z"
+}
 ```
 
-Check health:
+Indexes:
+
+```text
+user_id
+session_id
+attempt_id
+module_slug
+concept_slug
+attempt_no
+created_at
+```
+
+## 3. `mistaketutor_gap_diagnoses`
+
+Stores AI outputs: detected gap, severity, feedback, and follow-up question.
+
+Payload:
+
+```json
+{
+  "user_id": 1,
+  "session_id": 1,
+  "attempt_id": 1,
+  "concept_slug": "why-llm-hallucinates",
+  "gap_type": "missing_token_prediction_mechanism",
+  "severity": "high",
+  "feedback": "Ban moi noi AI chua thong minh, nhung chua neu co che du doan token.",
+  "followup_question": "LLM sinh cau tra loi tiep theo bang cach nao?",
+  "source_id": "llm-hallucination-transcript-01",
+  "confidence": 0.82,
+  "created_at": "2026-09-17T00:00:00Z"
+}
+```
+
+Indexes:
+
+```text
+user_id
+session_id
+attempt_id
+concept_slug
+gap_type
+severity
+source_id
+created_at
+```
+
+## 4. `mistaketutor_eval_cases`
+
+Stores golden-set and hard-test cases for CP3/CP4 metrics.
+
+Payload:
+
+```json
+{
+  "case_id": "eval-llm-hallu-001",
+  "case_type": "hard_test",
+  "module_slug": "llm-review",
+  "concept_slug": "why-llm-hallucinates",
+  "input_explanation": "AI bia vi no chua du thong minh.",
+  "expected_gap_type": "missing_token_prediction_mechanism",
+  "expected_behavior": "Hoi nguoc ve co che du doan token va dan nguon transcript.",
+  "difficulty": "medium",
+  "split": "cp3",
+  "created_at": "2026-09-17T00:00:00Z"
+}
+```
+
+Indexes:
+
+```text
+case_id
+case_type
+module_slug
+concept_slug
+expected_gap_type
+difficulty
+split
+created_at
+```
+
+## Commands
+
+Health check from host:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:6663/healthz
-```
-
-Create collection and indexes:
-
-```powershell
-python scripts/init_qdrant_collection.py
 ```
 
 List collections:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:6663/collections
+```
+
+Open dashboard:
+
+```text
+http://127.0.0.1:6663/dashboard
 ```

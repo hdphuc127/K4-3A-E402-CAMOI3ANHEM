@@ -42,7 +42,7 @@ Start local Qdrant on port `6663`:
 docker compose -f docker-compose.qdrant.yml up -d
 ```
 
-Create the MistakeTutor collection and payload indexes:
+Create the MistakeTutor collections and payload indexes:
 
 ```powershell
 python scripts/init_qdrant_collection.py
@@ -80,6 +80,7 @@ More details:
 
 ```text
 docker/README.md
+docs/docker-run.md
 ```
 
 Mistake diagnosis scaffold:
@@ -131,6 +132,13 @@ Use the `access_token` from register/login as:
 
 ```text
 Authorization: Bearer <access_token>
+```
+
+Curriculum endpoints:
+
+```text
+GET http://127.0.0.1:8000/api/v1/modules
+GET http://127.0.0.1:8000/api/v1/modules/{module_id}/concepts
 ```
 
 ## Test
