@@ -133,6 +133,12 @@ class ChatAnswer(BaseModel):
     citations: list[CitationDraft]
     answerable: bool
     injection_detected: bool
+    general_knowledge_used: bool = Field(
+        description=(
+            "True khi answerable=false nhung cau tra loi dung kien thuc chung "
+            "ve AI/LLM de mo rong ngoai retrieved_documents, thay vi tu choi."
+        )
+    )
 
 
 class Citation(BaseModel):

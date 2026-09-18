@@ -159,7 +159,29 @@ def get_review_data() -> ReviewData:
                         "Tokenizer cắt văn bản thành các mảnh nhỏ gọi là token.",
                         "Mỗi token được tra cứu trong từ điển để lấy một Token ID.",
                     ],
-                )
+                ),
+                LessonSlide(
+                    title="Slide 4 - Token không phải lúc nào cũng là một từ",
+                    body=[
+                        "Một từ dài hoặc hiếm gặp có thể bị cắt thành nhiều token nhỏ hơn, ví dụ 'unbelievable' -> un / believ / able.",
+                        "Ngược lại, một token cũng có thể chỉ là dấu câu hoặc một phần khoảng trắng.",
+                    ],
+                    note="Đây là nguồn gốc của lỗi nhầm token với từ hoàn chỉnh.",
+                ),
+                LessonSlide(
+                    title="Slide 5 - Kích thước từ điển và tốc độ xử lý",
+                    body=[
+                        "Từ điển token càng lớn thì mỗi từ càng ít bị cắt vụn, nhưng mô hình phải quản lý nhiều Token ID hơn.",
+                        "Số lượng token trong một đoạn văn bản ảnh hưởng trực tiếp tới chi phí và tốc độ suy luận của mô hình.",
+                    ],
+                ),
+                LessonSlide(
+                    title="Slide 6 - Tokenization khác nhau giữa các ngôn ngữ",
+                    body=[
+                        "Tiếng Việt có dấu và từ ghép nên một từ có thể bị tách thành nhiều token hơn tiếng Anh.",
+                        "Bộ tokenizer được huấn luyện trên dữ liệu nào sẽ tối ưu cho ngôn ngữ/miền dữ liệu đó.",
+                    ],
+                ),
             ],
         ),
         "embedding": Lesson(
@@ -177,8 +199,22 @@ def get_review_data() -> ReviewData:
                 LessonSlide(
                     title="Slide 5 - Khoảng cách ngữ nghĩa",
                     body=[
-                        "Độ gần nghĩa được đo bằng khoảng cách giữa các embedding vector.",
+                        "Độ gần nghĩa được đo bằng khoảng cách giữa các embedding vector, ví dụ cosine similarity.",
                         "Các từ gần nghĩa có thể có embedding gần nhau dù Token ID cách xa.",
+                    ],
+                ),
+                LessonSlide(
+                    title="Slide 6 - Embedding học được từ đâu?",
+                    body=[
+                        "Embedding vector không được gán tay, mà được học qua quá trình huấn luyện trên lượng lớn văn bản.",
+                        "Hai từ xuất hiện trong ngữ cảnh tương tự nhau thường có embedding gần nhau.",
+                    ],
+                ),
+                LessonSlide(
+                    title="Slide 7 - Ứng dụng của embedding ngoài LLM",
+                    body=[
+                        "Embedding còn được dùng để tìm kiếm ngữ nghĩa (semantic search) và gom cụm văn bản tương tự nhau.",
+                        "Một câu hỏi và một đoạn tài liệu liên quan có thể có embedding gần nhau dù không trùng từ nào.",
                     ],
                 ),
             ],
@@ -192,7 +228,29 @@ def get_review_data() -> ReviewData:
                         "Với mỗi token, mô hình tính điểm liên quan tới các token khác.",
                         "Điểm cao nghĩa là token đó ảnh hưởng nhiều hơn tới biểu diễn hiện tại.",
                     ],
-                )
+                ),
+                LessonSlide(
+                    title="Slide 3 - Attention giải quyết tham chiếu đại từ",
+                    body=[
+                        "Trong câu 'Con mèo ngồi trên thảm vì nó ấm', attention giúp mô hình liên kết 'nó' với 'thảm'.",
+                        "Trọng số chú ý được tính lại cho từng token, không cố định theo vị trí.",
+                    ],
+                ),
+                LessonSlide(
+                    title="Slide 4 - Self-attention khác cơ chế nén dữ liệu",
+                    body=[
+                        "Attention không làm giảm độ dài chuỗi đầu vào, nó chỉ thay đổi cách các token 'nhìn' nhau.",
+                        "Mỗi lớp attention trong mô hình có thể học một kiểu quan hệ khác nhau giữa các token.",
+                    ],
+                    note="Học viên hay nhầm attention với bước nén hoặc tóm tắt văn bản.",
+                ),
+                LessonSlide(
+                    title="Slide 5 - Multi-head attention",
+                    body=[
+                        "Mô hình thường dùng nhiều 'đầu' attention song song, mỗi đầu chú ý tới một khía cạnh quan hệ khác nhau.",
+                        "Kết quả của các đầu được ghép lại để tạo biểu diễn phong phú hơn cho mỗi token.",
+                    ],
+                ),
             ],
         ),
         "tool-calling": Lesson(
@@ -204,7 +262,29 @@ def get_review_data() -> ReviewData:
                         "Mô hình sinh ra JSON mô tả tên hàm và tham số.",
                         "Ứng dụng thực thi hàm rồi trả kết quả lại cho mô hình.",
                     ],
-                )
+                ),
+                LessonSlide(
+                    title="Slide 3 - Mô hình không tự thực thi công cụ",
+                    body=[
+                        "Mô hình chỉ sinh ra yêu cầu gọi hàm có cấu trúc, phần thực thi thực tế nằm ở hệ thống bên ngoài.",
+                        "Nếu ứng dụng không gọi hàm thật, lời gọi của mô hình sẽ không có tác dụng gì.",
+                    ],
+                    note="Học viên hay nhầm rằng mô hình tự chạy được mã hoặc công cụ.",
+                ),
+                LessonSlide(
+                    title="Slide 4 - Vì sao cần mô tả tool rõ ràng",
+                    body=[
+                        "Mỗi công cụ cần có tên, mô tả và schema tham số rõ ràng để mô hình chọn đúng công cụ và điền đúng tham số.",
+                        "Mô tả mơ hồ dễ khiến mô hình gọi sai hàm hoặc thiếu tham số bắt buộc.",
+                    ],
+                ),
+                LessonSlide(
+                    title="Slide 5 - Vòng lặp gọi công cụ nhiều bước",
+                    body=[
+                        "Một agent có thể gọi công cụ, nhận kết quả, rồi dùng kết quả đó để quyết định bước tiếp theo hoặc gọi thêm công cụ khác.",
+                        "Vòng lặp này chỉ dừng khi mô hình cho rằng đã đủ thông tin để trả lời người dùng.",
+                    ],
+                ),
             ],
         ),
     }

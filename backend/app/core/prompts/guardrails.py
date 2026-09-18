@@ -30,6 +30,11 @@ from app.core.prompts.schemas import (
     RubricCriterion,
     TeachBackDiagnosis,
 )
+from app.core.prompts.templates.messages import (
+    CHAT_REFUSAL_NO_CONTEXT,
+    CHAT_REFUSAL_WITH_HINT_TEMPLATE,
+    GENERAL_KNOWLEDGE_DISCLAIMER,
+)
 from app.core.prompts.templates.quiz_gen import (
     BANNED_OPTION_PATTERNS,
     QUIZ_OPTIONS_PER_ITEM,
@@ -196,16 +201,48 @@ def hydrate_citations(
     return kept
 
 
+def _deterministic_refusal(bundle: PromptBundle) -> str:
+    """G13 — dựng câu từ chối bằng CODE, không tin phần gợi ý model tự viết.
+
+    Model đã từng tự bịa tên một kỹ thuật không tồn tại trong bất kỳ tài liệu
+    nào ("Memory injection") ngay sau câu mở đầu bắt buộc. Câu mở đầu đó được
+    guardrail G8/refusal_policy ràng buộc, nhưng phần "nên tìm ở đâu" phía sau
+    là free text — không có gì buộc nó chỉ nhắc tài liệu có thật. Thay bằng
+    tên tài liệu thật lấy từ ``bundle.chunk_index`` (chunk có score cao nhất
+    trong lượt này), theo đúng nguyên tắc "field nào code suy ra được thì
+    model không được sinh ra".
+    """
+    if not bundle.chunk_index:
+        return CHAT_REFUSAL_NO_CONTEXT
+    nearest = max(bundle.chunk_index.values(), key=lambda c: c.score)
+    return CHAT_REFUSAL_WITH_HINT_TEMPLATE.format(title=nearest.title)
+
+
 def check_chat_answer(answer: ChatAnswer, bundle: PromptBundle) -> GuardrailReport:
-    """G5, G6, G7 và G12 cho luồng chat."""
+    """G5, G6, G7, G12, G13, G14 cho luồng chat."""
     report = GuardrailReport()
 
     if not answer.answer.strip():
         return report.fail("SCHEMA_VALIDATION_FAILED", "answer rong")
 
+    if answer.general_knowledge_used:
+        # G14 - phan mo rong ngoai retrieved_documents. Neu model van gan kem
+        # trich dan (cau tra loi mot phan: phan dau co can cu, phan sau mo
+        # rong), van doi chieu binh thuong qua hydrate_citations - chi loai
+        # trich dan bia, khong xoa trich dan thi. Luon gan nhan "ngoai tai
+        # lieu" bang code o cuoi, khong tin model tu khai bao dung.
+        if answer.citations:
+            report.citations = hydrate_citations(answer.citations, bundle, report)
+        answer.answer = f"{answer.answer.strip()}{GENERAL_KNOWLEDGE_DISCLAIMER}"
+        return report
+
+    if not answer.answerable:
+        answer.answer = _deterministic_refusal(bundle)
+        return report
+
     report.citations = hydrate_citations(answer.citations, bundle, report)
 
-    if answer.answerable and not report.citations:
+    if not report.citations:
         if answer.citations:
             # Model co trich dan nhung khong cai nao tru duoc -> bia nguon.
             return report.fail(

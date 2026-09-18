@@ -548,6 +548,15 @@ async def run_guarded_generation(
                 started_at=started_at,
             )
 
+        # Moi task co key rieng trong data ("quiz" cho QUIZ, "diagnosis" cho
+        # TEACH_BACK) ma envelope phai giu ngay ca khi ha cap - xem hop dong
+        # bat bien trong ARCHITECTURE.md muc 3 (Response Envelope).
+        task_extra_data: dict[str, Any] = (
+            {"quiz": []}
+            if bundle.task == "QUIZ"
+            else {"diagnosis": None} if bundle.task == "TEACH_BACK" else {}
+        )
+
         # G3 - cong context rong. Tu choi TRUOC khi sinh.
         if bundle.task in ("CHAT", "TEACH_BACK", "QUIZ") and not (
             guardrails.has_retrieval_context(items)
@@ -558,6 +567,7 @@ async def run_guarded_generation(
                 request_id=request_id,
                 started_at=started_at,
                 tier="T4",
+                extra_data=task_extra_data,
             )
 
         attempt = await _generate(
@@ -579,6 +589,7 @@ async def run_guarded_generation(
                 request_id=request_id,
                 started_at=started_at,
                 tier="T3",
+                extra_data=task_extra_data,
             )
 
         data, report = _apply_guardrails(attempt.parsed, bundle, criteria)
@@ -590,6 +601,7 @@ async def run_guarded_generation(
                 request_id=request_id,
                 started_at=started_at,
                 tier="T3",
+                extra_data=task_extra_data,
             )
 
         extra_meta: dict[str, Any] = {

@@ -1,12 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { TutorChat, type ChatMessage } from "@/components/TutorChat";
+import { AdaptiveQuiz } from "@/components/AdaptiveQuiz";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   getModuleConcepts,
   getModules,
   getReviewData,
   postDiagnosis,
+  postDiagnosticTest,
+  postQuiz,
   type DiagnosisResult,
   type ReviewCheckQuestion,
   type ReviewLesson,
@@ -16,6 +20,7 @@ import {
 } from "@/lib/api";
 import { type ChatContext } from "@/lib/tutor-replies";
 import { requestTutorReplyStream } from "@/lib/chat";
+import type { QuizAnswers, QuizQuestion } from "@/lib/quiz";
 import {
   CHECK_QUESTIONS as FALLBACK_CHECK_QUESTIONS,
   LESSONS as FALLBACK_LESSONS,
@@ -48,7 +53,15 @@ export const Route = createFileRoute("/")({
   component: ReviewApp,
 });
 
-type Step = "weeks" | "week" | "test" | "result" | "lesson" | "check" | "summary";
+type Step =
+  | "weeks"
+  | "week"
+  | "test"
+  | "result"
+  | "lesson"
+  | "check"
+  | "adaptive-quiz"
+  | "summary";
 type Status = "strong" | "needs" | "reviewed" | "unverified";
 
 const STEP_LABEL: Record<Step, string> = {
@@ -58,10 +71,20 @@ const STEP_LABEL: Record<Step, string> = {
   result: "Lỗ hổng kiến thức",
   lesson: "Ôn nội dung",
   check: "Kiểm tra hiểu",
+  "adaptive-quiz": "Quiz thích ứng",
   summary: "Tổng kết tuần",
 };
 
-const FLOW: Step[] = ["weeks", "week", "test", "result", "lesson", "check", "summary"];
+const FLOW: Step[] = [
+  "weeks",
+  "week",
+  "test",
+  "result",
+  "lesson",
+  "check",
+  "adaptive-quiz",
+  "summary",
+];
 
 let mid = 0;
 const msg = (role: "user" | "ai", text: string): ChatMessage => ({
@@ -69,6 +92,39 @@ const msg = (role: "user" | "ai", text: string): ChatMessage => ({
   role,
   text,
 });
+
+const GENERATION_STAGES = [
+  "Đang đọc nội dung bài học...",
+  "Đang soạn câu hỏi...",
+  "Đang kiểm tra chất lượng câu hỏi...",
+];
+
+function GeneratingStatus() {
+  const [stageIndex, setStageIndex] = useState(0);
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => setStageIndex(1), 3000),
+      setTimeout(() => setStageIndex(2), 7000),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, []);
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">{GENERATION_STAGES[stageIndex]}</p>
+      <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-full" />
+      </div>
+      <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-full" />
+      </div>
+    </div>
+  );
+}
 
 function StatusPill({ status }: { status: Status }) {
   const map: Record<Status, { t: string; c: string }> = {
@@ -101,6 +157,16 @@ function ReviewApp() {
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  const [quizItems, setQuizItems] = useState<QuizQuestion[]>([]);
+  const [quizAnswers, setQuizAnswers] = useState<QuizAnswers>({});
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizError, setQuizError] = useState<string | null>(null);
+  const [generatedTestQuestions, setGeneratedTestQuestions] = useState<ReviewQuestion[]>([]);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
+  const testPrefetchKeyRef = useRef<string | null>(null);
+  const quizPrefetchKeyRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     msg(
       "ai",
@@ -146,10 +212,11 @@ function ReviewApp() {
   const getCheckQuestions = (id: string): ReviewCheckQuestion[] => CHECK_QUESTIONS[id] ?? [];
 
   const week = WEEKS.find((w) => w.id === weekId)!;
-  const weekQuestions = useMemo(
+  const staticWeekQuestions = useMemo(
     () => QUESTIONS.filter((q) => week.topics.includes(q.topic)),
     [week],
   );
+  const weekQuestions = generatedTestQuestions.length > 0 ? generatedTestQuestions : testError ? staticWeekQuestions : [];
 
   const wrongByTopic = useMemo(() => {
     const m: Record<string, number> = {};
@@ -264,6 +331,72 @@ function ReviewApp() {
     aiSay(
       `Được, mình ra một câu mới về ${getTopic(topic).name} — khác câu bạn đã làm sai, nhưng cùng khái niệm.`,
     );
+    // Bắt đầu sinh quiz thích ứng ngay khi vào bước check, để lúc người
+    // dùng bấm "Next" ở cuối check thì quiz nhiều khả năng đã sẵn sàng.
+    runAdaptiveQuizGeneration();
+  };
+
+  const runAdaptiveQuizGeneration = () => {
+    const weakPoints = week.topics
+      .filter((t) => topicStatus(t) === "needs")
+      .map((t) => getTopic(t).name);
+    const prefetchKey = `${topic}|${weakPoints.join(",")}`;
+    if (quizPrefetchKeyRef.current === prefetchKey) return;
+    quizPrefetchKeyRef.current = prefetchKey;
+
+    setQuizError(null);
+    setQuizLoading(true);
+    postQuiz({ topic, weak_points: weakPoints, difficulty: "MEDIUM", num_items: 4 })
+      .then((result) => {
+        setQuizItems(
+          result.items.map((item) => ({
+            id: item.id,
+            prompt: item.prompt,
+            options: item.options,
+            correct: item.correct,
+            why: item.why,
+            topic: item.topic,
+          })),
+        );
+      })
+      .catch((error: unknown) => {
+        setQuizError(error instanceof Error ? error.message : "Không tạo được quiz thích ứng");
+        setQuizItems([]);
+        quizPrefetchKeyRef.current = null;
+      })
+      .finally(() => setQuizLoading(false));
+  };
+
+  const startAdaptiveQuiz = () => {
+    setStep("adaptive-quiz");
+    setQuizSubmitted(false);
+    setQuizAnswers({});
+    runAdaptiveQuizGeneration();
+  };
+
+  const runDiagnosticTestGeneration = (targetWeekId: string) => {
+    if (testPrefetchKeyRef.current === targetWeekId) return;
+    testPrefetchKeyRef.current = targetWeekId;
+
+    setTestError(null);
+    setTestLoading(true);
+    setGeneratedTestQuestions([]);
+    postDiagnosticTest(targetWeekId)
+      .then((result) => {
+        setGeneratedTestQuestions(result.items);
+      })
+      .catch((error: unknown) => {
+        setTestError(
+          error instanceof Error ? error.message : "Không tạo được bài kiểm tra nhanh",
+        );
+        testPrefetchKeyRef.current = null;
+      })
+      .finally(() => setTestLoading(false));
+  };
+
+  const startTest = () => {
+    setStep("test");
+    runDiagnosticTestGeneration(weekId);
   };
 
   const remaining = week.topics.filter((t) => topicStatus(t) === "needs");
@@ -463,6 +596,9 @@ function ReviewApp() {
                   setFlagged({});
                   setShowAllMistakes(false);
                   setStep("week");
+                  // Sinh trước bài kiểm tra nhanh ngay khi vào tổng quan tuần,
+                  // để lúc bấm "Bắt đầu kiểm tra" thường đã có sẵn câu hỏi.
+                  runDiagnosticTestGeneration(weekId);
                 }}
                 disabled={!week.available}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-40"
@@ -484,7 +620,7 @@ function ReviewApp() {
                 <h2 className="text-xl font-semibold text-foreground">{week.title}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Kiểm tra nhanh để biết phần nào bạn cần ôn lại. Khoảng 3 phút,{" "}
-                  {weekQuestions.length} câu.
+                  {(generatedTestQuestions.length || staticWeekQuestions.length)} câu.
                 </p>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   {week.topics.map((t) => (
@@ -496,7 +632,7 @@ function ReviewApp() {
                 </div>
                 <div className="mt-5 flex flex-wrap gap-2">
                   <button
-                    onClick={() => setStep("test")}
+                    onClick={startTest}
                     className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
                   >
                     Bắt đầu kiểm tra
@@ -521,11 +657,33 @@ function ReviewApp() {
                 <h2 className="text-xl font-semibold text-foreground">
                   Bài kiểm tra nhanh — {week.title}
                 </h2>
-                <span className="text-sm text-muted-foreground">
-                  Đã trả lời {Object.keys(answers).length}/{weekQuestions.length}
-                </span>
+                {!testLoading && (
+                  <span className="text-sm text-muted-foreground">
+                    Đã trả lời {Object.keys(answers).length}/{weekQuestions.length}
+                  </span>
+                )}
               </div>
-              {weekQuestions.map((q, i) => (
+              {testLoading && <GeneratingStatus />}
+              {!testLoading && testError && generatedTestQuestions.length === 0 && weekQuestions.length === 0 && (
+                <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
+                  <p className="font-medium">Không tạo được bài kiểm tra nhanh.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{testError}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => runDiagnosticTestGeneration(weekId)}
+                      className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+                    >
+                      Thử lại
+                    </button>
+                  </div>
+                </div>
+              )}
+              {!testLoading && testError && weekQuestions.length > 0 && (
+                <p className="rounded-lg border border-warning/40 bg-warning/10 p-2.5 text-xs text-muted-foreground">
+                  AI chưa sinh được câu hỏi mới, đang dùng bộ câu hỏi có sẵn thay thế.
+                </p>
+              )}
+              {!testLoading && weekQuestions.map((q, i) => (
                 <div key={q.id} className="rounded-xl border border-border bg-card p-4">
                   <div className="mb-2 flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Câu {i + 1}</span>
@@ -554,23 +712,27 @@ function ReviewApp() {
                   </div>
                 </div>
               ))}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={submitTest}
-                  disabled={
-                    isSubmittingDiagnosis || Object.keys(answers).length < weekQuestions.length
-                  }
-                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-40"
-                >
-                  {isSubmittingDiagnosis ? "Đang phân tích..." : "Nộp bài"}
-                </button>
-                <button
-                  onClick={() => setStep("week")}
-                  className="rounded-lg border border-border px-4 py-2 text-sm hover:border-primary"
-                >
-                  Quay lại
-                </button>
-              </div>
+              {!testLoading && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={submitTest}
+                    disabled={
+                      isSubmittingDiagnosis ||
+                      weekQuestions.length === 0 ||
+                      Object.keys(answers).length < weekQuestions.length
+                    }
+                    className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-40"
+                  >
+                    {isSubmittingDiagnosis ? "Đang phân tích..." : "Nộp bài"}
+                  </button>
+                  <button
+                    onClick={() => setStep("week")}
+                    className="rounded-lg border border-border px-4 py-2 text-sm hover:border-primary"
+                  >
+                    Quay lại
+                  </button>
+                </div>
+              )}
             </>
           )}
 
@@ -834,7 +996,7 @@ function ReviewApp() {
               onBackToLesson={() => setStep("lesson")}
               onExplainDifferently={() => send("Giải thích dễ hiểu hơn")}
               onAnotherExample={() => send("Cho tôi ví dụ khác")}
-              onNext={() => setStep("summary")}
+              onNext={startAdaptiveQuiz}
               onLater={() => {
                 setStatus((s) => ({ ...s, [topic]: "needs" }));
                 setStep("summary");
@@ -842,6 +1004,69 @@ function ReviewApp() {
               remaining={remaining.filter((t) => t !== topic)}
               onPickNext={goLesson}
             />
+          )}
+
+          {step === "adaptive-quiz" && (
+            <>
+              {quizLoading && <GeneratingStatus />}
+              {!quizLoading && quizError && (
+                <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
+                  <p className="font-medium">Không tạo được quiz thích ứng.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{quizError}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      onClick={startAdaptiveQuiz}
+                      className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+                    >
+                      Thử lại
+                    </button>
+                    <button
+                      onClick={() => setStep("summary")}
+                      className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm hover:border-primary"
+                    >
+                      Bỏ qua, xem tổng kết
+                    </button>
+                  </div>
+                </div>
+              )}
+              {!quizLoading && !quizError && quizItems.length === 0 && (
+                <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+                  <p>AI chưa tạo được đủ câu hỏi hợp lệ cho quiz này.</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      onClick={startAdaptiveQuiz}
+                      className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+                    >
+                      Thử tạo lại
+                    </button>
+                    <button
+                      onClick={() => setStep("summary")}
+                      className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm hover:border-primary"
+                    >
+                      Bỏ qua, xem tổng kết
+                    </button>
+                  </div>
+                </div>
+              )}
+              {!quizLoading && !quizError && quizItems.length > 0 && (
+                <AdaptiveQuiz
+                  title={`Quiz thích ứng — ${getTopic(topic).name}`}
+                  questions={quizItems}
+                  answers={quizAnswers}
+                  submitted={quizSubmitted}
+                  metadata={{ difficulty: "MEDIUM" }}
+                  topicLabels={Object.fromEntries(
+                    Object.entries(TOPICS).map(([id, t]) => [id, t.name]),
+                  )}
+                  onPick={(questionId, answer) =>
+                    setQuizAnswers((a) => ({ ...a, [questionId]: answer }))
+                  }
+                  onSubmit={() => setQuizSubmitted(true)}
+                  onContinue={() => setStep("summary")}
+                  onBack={() => setStep("summary")}
+                />
+              )}
+            </>
           )}
 
           {step === "summary" && (

@@ -9,7 +9,7 @@ from typing import Protocol
 from app.core.config import settings
 from app.core.prompts.schemas import PromptBundle, Provider
 
-_GEMINI_MODEL = "gemini-2.0-flash"
+_GEMINI_MODEL = "gemini-3.6-flash"
 _OPENAI_MODEL = "gpt-4o-mini"
 
 

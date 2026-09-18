@@ -6,6 +6,8 @@ from app.api.v1.chat import router as chat_router
 from app.api.v1.curriculum import router as curriculum_router
 from app.api.v1.diagnosis import router as diagnosis_router
 from app.api.v1.health import router as health_router
+from app.api.v1.quiz import router as quiz_router
+from app.api.v1.test import router as test_router
 from app.core.config import settings
 from app.db.session import initialize_database
 
@@ -55,6 +57,16 @@ def create_app() -> FastAPI:
         curriculum_router,
         prefix=f"{settings.api_prefix}",
         tags=["curriculum"],
+    )
+    app.include_router(
+        quiz_router,
+        prefix=f"{settings.api_prefix}",
+        tags=["quiz"],
+    )
+    app.include_router(
+        test_router,
+        prefix=f"{settings.api_prefix}",
+        tags=["test"],
     )
     return app
 

@@ -87,3 +87,34 @@ nhất tới câu hỏi của bạn:
 Nguồn: {title} — {locator}. Bạn mở nguồn để đọc đầy đủ nhé."""
 
 EXTRACTIVE_FALLBACK_EXCERPT_CHARS = 400
+
+
+# --- Từ chối trong luồng chat (G13) -----------------------------------------
+#
+# Câu mở đầu là bắt buộc theo <refusal_policy> trong chat_rag.py, nhưng phần
+# gợi ý "nên tìm ở đâu" phía sau đó là văn bản tự do của model — không có gì
+# buộc nó chỉ nhắc tên tài liệu có thật. Để field đó do CODE dựng từ chunk
+# thật thay vì tin lời model, xoá hẳn một lớp hallucination (model đã từng
+# bịa ra một kỹ thuật không tồn tại trong bất kỳ tài liệu nào).
+
+CHAT_REFUSAL_WITH_HINT_TEMPLATE = (
+    "Mình không tìm thấy nội dung này trong tài liệu bài giảng của khóa học. "
+    "Tài liệu gần nhất mình có là {title}, bạn thử xem lại ở đó nhé."
+)
+
+CHAT_REFUSAL_NO_CONTEXT = (
+    "Mình không tìm thấy nội dung này trong tài liệu bài giảng của khóa học."
+)
+
+
+# --- Kiến thức mở rộng ngoài tài liệu (G14) ---------------------------------
+#
+# Khi model mở rộng bằng kiến thức chuyên môn (general_knowledge_used=true),
+# nhãn "đây là phần ngoài tài liệu" do CODE gắn thay vì tin model tự khai báo
+# đúng — cùng lý do với CHAT_REFUSAL_WITH_HINT_TEMPLATE ở trên.
+
+GENERAL_KNOWLEDGE_DISCLAIMER = (
+    "\n\n_(Phần trên là kiến thức chung ngoài tài liệu bài giảng của khóa học, "
+    "không có trích dẫn cụ thể — bạn nên đối chiếu thêm nếu cần chính xác "
+    "tuyệt đối.)_"
+)
