@@ -8,7 +8,15 @@ from app.core.citation.source_citation import build_source_citation
 from app.core.prompts.mistake_diagnosis_prompt import MISTAKE_DIAGNOSIS_SYSTEM_PROMPT
 from app.core.vector_search.retriever import retrieve_tokenization_context
 from app.db.review_data import get_review_data
+feat/core-apis
 from app.schemas.diagnosis import DiagnosisRequest, DiagnosisResult
+=======
+from app.schemas.diagnosis import DiagnosisRequest, DiagnosisResult, SourceCitation
+
+# Score assigned to the single fixture chunk until real retrieval (with a real
+# similarity score) replaces retrieve_tokenization_context().
+_FIXTURE_RETRIEVAL_SCORE = 0.9
+main
 
 
 def diagnose_mistake(request: DiagnosisRequest) -> DiagnosisResult:
@@ -20,6 +28,7 @@ def diagnose_mistake(request: DiagnosisRequest) -> DiagnosisResult:
     context as citation. LLM-generated prose can be reintroduced later as a
     refinement layer, but it must not override correctness.
     """
+feat/core-apis
 
     if request.question_id == "tokenization-basic-01":
         context = {
@@ -36,6 +45,62 @@ def diagnose_mistake(request: DiagnosisRequest) -> DiagnosisResult:
         context = retrieve_tokenization_context(
             request.lesson_id,
             query=f"{request.question_text}\n{request.student_answer}",
+=======
+    if request.question_id == "tokenization-basic-01":
+        context = {
+            "source_id": "t06-tokenization:tokenization-03",
+            "title": "Transcript T06 - Tokenization",
+            "excerpt": (
+                "Tokenization la buoc chia van ban thanh cac don vi nho hon de "
+                "mo hinh xu ly. Trong vi du don gian, ta co the tam tach theo "
+                "khoang trang."
+            ),
+        }
+    else:
+        context = retrieve_tokenization_context(
+            request.lesson_id,
+            query=f"{request.question_text}\n{request.student_answer}",
+        )
+    normalized_answer = request.student_answer.strip().lower()
+
+    review_question = next(
+        (question for question in get_review_data().questions if question.id == request.question_id),
+        None,
+    )
+
+    if review_question is not None:
+        expected_answer = review_question.options[review_question.correct].strip().lower()
+        is_correct = normalized_answer == expected_answer or normalized_answer == str(review_question.correct)
+        misconception = "answer_is_correct" if is_correct else "ambiguous_or_unknown"
+        hint = (
+            "Đáp án đúng. Hãy giải thích lại bằng lời của bạn để xác nhận lý do."
+            if is_correct
+            else f"{review_question.why} Hãy giải thích vì sao lựa chọn của bạn khác với khái niệm này."
+        )
+        next_action = "explain_reasoning" if is_correct else "ask_for_reasoning"
+        confidence = 0.9 if is_correct else 0.72
+    else:
+        is_correct = normalized_answer in {"3", "three", "ba"}
+
+    if review_question is None and is_correct:
+        misconception = "answer_is_correct"
+        hint = "Dap an dung. Hay noi lai vi sao co 3 don vi duoc tach bang khoang trang."
+        next_action = "explain_reasoning"
+        confidence = 0.86
+    elif review_question is None and normalized_answer in {"8", "7", "6"}:
+        misconception = "counting_characters_or_spaces"
+        hint = (
+            "Ban co ve dang dem ky tu hoac ca dau cach. Hay tach cau thanh "
+            "cac cum lien tiep khong co khoang trang roi dem cac cum do."
+        )
+        next_action = "retry_answer"
+        confidence = 0.78
+    elif review_question is None:
+        misconception = "ambiguous_or_unknown"
+        hint = (
+            "Cau tra loi chua du ro de chan doan chac chan. Hay viet cach ban "
+            "dem tung don vi trong cau."
+main
         )
         diagnosis = _diagnose_review_answer(request)
 
