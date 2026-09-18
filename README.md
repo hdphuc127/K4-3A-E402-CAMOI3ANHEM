@@ -2,7 +2,7 @@
 
 > Trợ giảng AI giúp học viên VLearn **tìm đúng lỗ hổng kiến thức** sau khi học xong một chương, thay vì đọc lại slide một cách mò mẫm.
 
-Mini Hackathon AI · Batch 04 · Ca 3A · Track D (Adaptive Learning) · Nhóm **CẢ MỜI 3 ANH EM**
+Mini Hackathon AI · Batch 04 · Ca 3A · Track D (Adaptive Learning) · Nhóm **CÁ MÒI 3 ANH EM**
 
 ---
 

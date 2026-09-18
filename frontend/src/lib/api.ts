@@ -144,6 +144,54 @@ export function getReviewData() {
   return request<ReviewData>("/review-data");
 }
 
+export type QuizItem = {
+  id: string;
+  prompt: string;
+  options: string[];
+  correct: number;
+  why: string;
+  topic: string;
+  source_id: string;
+};
+
+export type QuizResult = {
+  quiz_id: string;
+  difficulty: string;
+  items: QuizItem[];
+};
+
+export function postQuiz(input: {
+  topic: string;
+  weak_points?: string[];
+  difficulty?: string;
+  num_items?: number;
+}) {
+  return request<QuizResult>("/quiz", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+}
+
+export type TestResult = {
+  test_id: string;
+  items: ReviewQuestion[];
+};
+
+export function postDiagnosticTest(weekId: string) {
+  return request<TestResult>("/test", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ week_id: weekId }),
+  });
+}
+
 export function postDiagnosis(input: {
   lesson_id: string;
   question_id: string;

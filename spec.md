@@ -33,8 +33,8 @@ _Deliverable chuẩn CP4 · Mini Hackathon AI Batch 04 · Ca 3A · Nhóm CẢ M�
 
 ### Tập người dùng mục tiêu & Willing Users (CP1)
 
-- Willing User 1: `[CHƯA ĐIỀN — cần tên thật trước khi nộp]`
-- Willing User 2: `[CHƯA ĐIỀN — cần tên thật trước khi nộp]`
+- Nguyễn Văn Xuân Lộc
+- Nguyễn Thị Thùy Dương
 
 ---
 

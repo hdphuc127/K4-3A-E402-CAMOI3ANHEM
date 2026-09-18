@@ -8,7 +8,8 @@ class Settings(BaseSettings):
     app_env: str = "development"
     api_prefix: str = "/api/v1"
     backend_cors_origins: str = (
-        "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173"
+        "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,"
+        "http://localhost:8080,http://127.0.0.1:8080"
     )
     database_url: str = "sqlite:///./storage/mistaketutor.db"
     auth_secret_key: str = "change-me-in-local-env"
@@ -20,8 +21,8 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openrouter_api_key: str = ""
     openrouter_model: str = "openai/gpt-4o-mini"
-    llm_primary_provider: str = "gemini"
-    llm_fallback_provider: str = "openai"
+    llm_primary_provider: str = "openai"
+    llm_fallback_provider: str = "gemini"
     llm_deadline_s: float = 10.0
     enable_llm_judge: bool = False
     qdrant_url: str = "http://127.0.0.1:6663"
